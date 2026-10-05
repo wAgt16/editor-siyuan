@@ -22,6 +22,7 @@ import {
     type IMenu,
     type IMenuBaseDetail,
     type Plugin,
+    type subMenu,
 } from "siyuan";
 import {allowedExtensions, hasAllowedExtension, type Settings, type TTakeover} from "./config";
 import {debug} from "./debug";
@@ -129,11 +130,26 @@ export function openSyPreview(deps: IOpenDeps, notebookId: string, path: string)
 }
 
 /**
- * 文件树里笔记文档的右键菜单。
+ * 在菜单的「插件」子菜单里加一条「预览 .sy 文件」。
  *
- * 文档路径在 detail.items 里，已经带了 .sy 扩展名。注意文件夹也会走同一个事件，
- * 而且 initFileMenu 把 detail.type 写死成 "doc"，所以只能靠 .sy 后缀判断。
+ * 两个入口共用：文件树里的笔记文档（open-menu-doctree），以及文档标题图标与面包屑上的
+ * 文档按钮（click-editortitleicon，两者都走 protyle/header/openTitleMenu.ts）。
+ * 文件夹也会发 open-menu-doctree，且 initFileMenu 把 detail.type 写死成 "doc"，
+ * 所以一律靠 .sy 后缀判断。
  */
+function addSyPreviewItem(deps: IOpenDeps, menu: subMenu, notebookId: string, path: string): void {
+    if (!deps.settings().previewSy || !path.toLowerCase().endsWith(".sy")) {
+        return;
+    }
+    menu.addItem({
+        id: "editorSiyuanPreviewSy",
+        label: deps.t("previewSyMenu"),
+        icon: ICON_TAB,
+        click: () => openSyPreview(deps, notebookId, path),
+    });
+}
+
+/** 笔记文档的右键菜单：文件树、文档标题图标、面包屑上的文档按钮。 */
 function registerSyPreview(deps: IOpenDeps): void {
     deps.plugin.eventBus.on("open-menu-doctree", (event) => {
         const item = event.detail.items?.[0];
@@ -142,19 +158,19 @@ function registerSyPreview(deps: IOpenDeps): void {
             path: item?.path,
             previewSy: deps.settings().previewSy,
         });
-        if (!deps.settings().previewSy || event.detail.type !== "doc") {
+        if (event.detail.type !== "doc" || !item) {
             return;
         }
-        if (!item || !item.path.toLowerCase().endsWith(".sy")) {
-            return;
+        addSyPreviewItem(deps, event.detail.menu, item.notebookId, item.path);
+    });
+
+    // 标题图标与面包屑的文档按钮：落盘位置由 protyle 自己带着（path 形如 /2021….sy）
+    deps.plugin.eventBus.on("click-editortitleicon", (event) => {
+        const {notebookId, path} = event.detail.protyle;
+        debug("click-editortitleicon", {notebookId, path, previewSy: deps.settings().previewSy});
+        if (notebookId && path) {
+            addSyPreviewItem(deps, event.detail.menu, notebookId, path);
         }
-        const menuItem: IMenu = {
-            id: "editorSiyuanPreviewSy",
-            label: deps.t("previewSyMenu"),
-            icon: ICON_TAB,
-            click: () => openSyPreview(deps, item.notebookId, item.path),
-        };
-        event.detail.menu.addItem(menuItem);
     });
 }
 

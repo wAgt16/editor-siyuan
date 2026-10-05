@@ -35,7 +35,7 @@
   "gestureShiftClick": "Shift+Click",
   "gestureNone": "Never take over",
   "previewSy": "Preview .sy files",
-  "previewSyTip": "Right-click a note in the file tree and pick **Plugins - Preview .sy file** to read that note's .sy source file in a read-only tab",
+  "previewSyTip": "Add an entry to a note's menu that opens its .sy source file in a read-only tab",
   "previewSyMenu": "Preview .sy file",
   "syReadonly": "A previewed .sy file is read-only and cannot be edited or saved",
   "extensions": "File extensions",

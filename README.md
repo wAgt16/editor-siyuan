@@ -14,7 +14,7 @@ Four ways in:
 - Click a link to an asset text file, if takeover is on (the default).
 - Right-click the link and pick the plugin submenu entry, **Open with Editor**.
 - Turn takeover off and use only the menu entry.
-- Right-click a note in the file tree and pick **Preview .sy file** from the plugins submenu to read that note's `.sy` source file read-only (turn it on in the settings first).
+- Right-click a note and pick **Preview .sy file** from the plugins submenu to read its `.sy` source file read-only (turn it on in the settings first).
 
 Only files in the workspace's `assets/` folder are handled. Links to absolute paths outside the workspace (`file:///...`) are left alone. The `.sy` preview only handles notes inside the workspace.
 
@@ -46,7 +46,7 @@ The save shortcut is registered as a plugin command. Change it under **Settings 
 | --- | --- | --- |
 | Open asset text files in a tab | on | Whether a click on a whitelisted link opens this editor instead of the system default application |
 | Gesture to take over | Click | Which click is taken over. Every other gesture keeps SiYuan's own behaviour, so Alt or Shift click still opens the system default application and Ctrl click still reveals the file |
-| Preview .sy files | off | Whether right-clicking a note in the file tree offers **Preview .sy file**, a read-only tab with that note's `.sy` source file |
+| Preview .sy files | off | Whether a note's menu gains an entry that opens its `.sy` source file in a read-only tab |
 | File extensions | a list of common text and code extensions | Which assets are opened here. One extension per line |
 | Size limit (MB) | 5 | Larger files are not opened here |
 | Confirm before closing | on | Ask before closing a tab with unsaved changes |

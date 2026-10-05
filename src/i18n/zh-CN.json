@@ -35,7 +35,7 @@
   "gestureShiftClick": "Shift+单击",
   "gestureNone": "从不接管",
   "previewSy": "支持预览 .sy 文件",
-  "previewSyTip": "在文件树里右键笔记文档，通过「插件 - 预览 .sy 文件」以只读方式查看该文档的 .sy 源文件",
+  "previewSyTip": "在笔记文档的菜单里加一项，以只读页签查看它的 .sy 源文件",
   "previewSyMenu": "预览 .sy 文件",
   "syReadonly": "预览的 .sy 文档是只读的，不能编辑或保存",
   "extensions": "文件扩展名",
