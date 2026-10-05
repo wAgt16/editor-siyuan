@@ -38,6 +38,8 @@
   "previewSyTip": "Add an entry to a note's menu that opens its .sy source file in a read-only tab",
   "previewSyMenu": "Preview .sy file",
   "syReadonly": "A previewed .sy file is read-only and cannot be edited or saved",
+  "codeBlockMenu": "Format and minify code blocks",
+  "codeBlockMenuTip": "Add format and minify to a note's code block menu, acting on that block's content",
   "extensions": "File extensions",
   "extensionsTip": "Only links to assets with these extensions are opened here. One per line, or separated by commas or spaces",
   "extensionsReset": "Restore default list",

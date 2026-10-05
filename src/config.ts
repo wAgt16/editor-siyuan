@@ -51,6 +51,8 @@ export interface Settings {
     restoreCursor: boolean;
     /** 在文件树里右键笔记文档时，是否提供「预览 .sy 文件」。 */
     previewSy: boolean;
+    /** 在笔记的代码块菜单里，是否提供「代码格式化」与「代码压缩」。 */
+    codeBlockMenu: boolean;
     /** 往浏览器控制台输出详细日志，供排查问题。 */
     debug: boolean;
 }
@@ -86,6 +88,7 @@ export const DEFAULT_SETTINGS: Settings = {
     openMode: "edit",
     restoreCursor: true,
     previewSy: false,
+    codeBlockMenu: true,
     debug: false,
 };
 
@@ -113,6 +116,7 @@ export function normalizeSettings(raw: unknown): Settings {
         openMode: pick(source.openMode, OPEN_MODES, DEFAULT_SETTINGS.openMode),
         restoreCursor: source.restoreCursor !== false,
         previewSy: source.previewSy === true,
+        codeBlockMenu: source.codeBlockMenu !== false,
         debug: source.debug === true,
     };
 }

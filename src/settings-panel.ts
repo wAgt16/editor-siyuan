@@ -86,6 +86,14 @@ export function openSettingsPanel(options: ISettingsPanelOptions): void {
     });
 
     setting.addItem({
+        title: t("codeBlockMenu"),
+        description: t("codeBlockMenuTip"),
+        actionElement: switchControl(draft.codeBlockMenu, (checked) => {
+            draft.codeBlockMenu = checked;
+        }),
+    });
+
+    setting.addItem({
         title: t("extensions"),
         description: t("extensionsTip"),
         direction: "row",

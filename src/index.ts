@@ -16,6 +16,7 @@ import {loadHljs} from "./hljs";
 import {registerOpenHandlers, TAB_TYPE} from "./open";
 import {openSettingsPanel} from "./settings-panel";
 import {registerCloseGuard} from "./close-guard";
+import {registerCodeMenu} from "./code-menu";
 import {watchCodeTheme} from "./theme";
 import {config} from "./util";
 import {createView, focusedTab, refreshEditorSettings, watchEditorConfig, type IEditorTab} from "./view";
@@ -76,6 +77,11 @@ export default class EditorPlugin extends Plugin {
             settings: () => this.settings,
         });
         registerCloseGuard({
+            plugin: this,
+            t: this.t,
+            settings: () => this.settings,
+        });
+        registerCodeMenu({
             plugin: this,
             t: this.t,
             settings: () => this.settings,
