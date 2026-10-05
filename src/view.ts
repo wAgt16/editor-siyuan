@@ -91,13 +91,17 @@ export function createView(custom: Custom, t: T, settings: () => Settings): IEdi
 
     const root = document.createElement("div");
     root.className = "editor-siyuan";
+    // data-menu="true" 是思源给「点开菜单的元素」打的标记，两个菜单触发元素都要带上：
+    // 宿主的全局 click（boot/globalEvent/click.ts 的 globalClickHideMenu）会在任何 click
+    // 之后关掉共享菜单，只有被点元素在菜单内、或带这个标记时才放过——否则点一下按钮，
+    // 菜单刚弹出来就被这次点击自己关掉了。思源自己的 ⋮ 按钮也是这么标的（layout/dock/Inbox.ts）。
     root.innerHTML = `<div class="editor-siyuan__action">
-<span class="editor-siyuan__language"></span>
+<span class="editor-siyuan__language" data-menu="true"></span>
 <span class="fn__flex-1"></span>
 <span class="editor-siyuan__icon" data-type="search"><svg><use xlink:href="#iconSearch"></use></svg></span>
 <span class="editor-siyuan__icon" data-type="readonly"><svg><use xlink:href="#iconEye"></use></svg></span>
 <span class="editor-siyuan__icon" data-type="save"><svg><use xlink:href="#${ICON_SAVE}"></use></svg></span>
-<span class="editor-siyuan__icon" data-type="more"><svg><use xlink:href="#iconMore"></use></svg></span>
+<span class="editor-siyuan__icon" data-type="more" data-menu="true"><svg><use xlink:href="#iconMore"></use></svg></span>
 </div>
 <div class="editor-siyuan__body">
 <div class="editor-siyuan__mount"></div>
