@@ -9,7 +9,7 @@
  * 面板里改的是一份草稿，点「保存」才落盘——这也正是 Setting 的 confirmCallback 语义。
  */
 import {Setting} from "siyuan";
-import {DEFAULT_EXTENSIONS, type Settings, type TLineNumbers, type TOpenMode, type TTakeover} from "./config";
+import {DEFAULT_EXTENSIONS, type Settings, type TFollow, type TLineNumbers, type TOpenMode, type TTakeover} from "./config";
 import {rememberedCount} from "./config";
 import type {T} from "./i18n";
 
@@ -160,6 +160,18 @@ export function openSettingsPanel(options: ISettingsPanelOptions): void {
             {value: "hide", label: t("lineNumbersHide")},
         ], (value) => {
             draft.lineNumbers = value as TLineNumbers;
+        }),
+    });
+
+    setting.addItem({
+        title: t("lineWrap"),
+        description: t("lineWrapTip"),
+        actionElement: selectControl(draft.lineWrap, [
+            {value: "auto", label: t("followSiYuan")},
+            {value: "on", label: t("enable")},
+            {value: "off", label: t("disable")},
+        ], (value) => {
+            draft.lineWrap = value as TFollow;
         }),
     });
 

@@ -16,7 +16,7 @@ import {registerOpenHandlers, TAB_TYPE} from "./open";
 import {openSettingsPanel} from "./settings-panel";
 import {registerCloseGuard} from "./close-guard";
 import {watchCodeTheme} from "./theme";
-import {createView, focusedTab, refreshLineNumbers, type IEditorTab} from "./view";
+import {createView, focusedTab, refreshEditorSettings, watchEditorConfig, type IEditorTab} from "./view";
 
 export default class EditorPlugin extends Plugin {
     private settings: Settings = {...DEFAULT_SETTINGS};
@@ -38,6 +38,8 @@ export default class EditorPlugin extends Plugin {
         this.settings = normalizeSettings(stored);
 
         watchCodeTheme(this);
+        // 思源自己的编辑器设置改了之后，「跟随思源设置」的那几项也要跟着变
+        watchEditorConfig(this, () => this.settings);
         // 思源只在渲染过代码块后才加载 highlight.js，这里先把它备好，第一次打开页签就能直接上色
         void loadHljs();
 
@@ -104,7 +106,7 @@ export default class EditorPlugin extends Plugin {
             showMessage(`${this.t("settingsFailed")}: ${error instanceof Error ? error.message : String(error)}`, 6000, "error");
             return;
         }
-        refreshLineNumbers(next);
+        refreshEditorSettings(next);
         showMessage(this.t("settingsSaved"), 2000);
     }
 }

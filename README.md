@@ -51,6 +51,7 @@ The save shortcut is registered as a plugin command. Change it under **Settings 
 | Stash unsaved changes | on | Keep unsaved content when a tab closes and offer to restore it next time |
 | Mode to open in | Edit | Whether a new tab starts in editing or read-only preview; already open tabs are unaffected |
 | Line numbers | Always show | Whether the gutter shows line numbers |
+| Line wrap | Follow SiYuan | Whether content wider than the editor wraps automatically |
 | Restore position | on | Return to the previous scroll position and cursor |
 | Remembered state | — | How many per-file choices are remembered, and a button to clear them |
 

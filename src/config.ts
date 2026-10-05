@@ -23,6 +23,9 @@ export type TTakeover = "click" | "ctrlClick" | "altClick" | "shiftClick" | "non
 /** auto 跟随思源的 `editor.codeSyntaxHighlightLineNum`。 */
 export type TLineNumbers = "auto" | "show" | "hide";
 
+/** 跟随思源 / 强制开启 / 强制关闭，用于换行与连字这类思源也有的开关。 */
+export type TFollow = "auto" | "on" | "off";
+
 /** 页签打开时的模式；preview 即操作条上的只读态。 */
 export type TOpenMode = "edit" | "preview";
 
@@ -38,6 +41,8 @@ export interface Settings {
     /** beforeDestroy 时把未保存正文暂存下来，下次打开同一文件时提示恢复。 */
     stashUnsaved: boolean;
     lineNumbers: TLineNumbers;
+    /** 超出编辑器宽度时是否自动换行；auto 跟随思源的 `editor.codeLineWrap`。 */
+    lineWrap: TFollow;
     /** 打开页签时先进入编辑还是只读预览。 */
     openMode: TOpenMode;
     /** 重新打开时恢复上次的滚动位置与光标。 */
@@ -70,12 +75,14 @@ export const DEFAULT_SETTINGS: Settings = {
     confirmOnClose: true,
     stashUnsaved: true,
     lineNumbers: "show",
+    lineWrap: "auto",
     openMode: "edit",
     restoreCursor: true,
 };
 
 const TAKEOVERS: TTakeover[] = ["click", "ctrlClick", "altClick", "shiftClick", "none"];
 const LINE_NUMBERS: TLineNumbers[] = ["auto", "show", "hide"];
+const FOLLOWS: TFollow[] = ["auto", "on", "off"];
 const OPEN_MODES: TOpenMode[] = ["edit", "preview"];
 
 const pick = <T extends string>(value: unknown, allowed: T[], fallback: T): T =>
@@ -92,6 +99,7 @@ export function normalizeSettings(raw: unknown): Settings {
         confirmOnClose: source.confirmOnClose !== false,
         stashUnsaved: source.stashUnsaved !== false,
         lineNumbers: pick(source.lineNumbers, LINE_NUMBERS, DEFAULT_SETTINGS.lineNumbers),
+        lineWrap: pick(source.lineWrap, FOLLOWS, DEFAULT_SETTINGS.lineWrap),
         openMode: pick(source.openMode, OPEN_MODES, DEFAULT_SETTINGS.openMode),
         restoreCursor: source.restoreCursor !== false,
     };

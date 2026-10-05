@@ -12,7 +12,7 @@
  * 图标按钮只留 aria-label 给读屏，不挂思源的 .ariaLabel：那一栏紧贴正文，
  * 悬浮提示弹出时会压住第一行代码，得不偿失。
  */
-import {showMessage, type Custom} from "siyuan";
+import {showMessage, type Custom, type Plugin} from "siyuan";
 import type {EditorView} from "@codemirror/view";
 import {readAssetText, resolveAsset, writeAssetText, type IAssetRef, type IAssetText} from "./asset";
 import {
@@ -21,6 +21,7 @@ import {
     restoreCursor,
     setEditorLanguage,
     setEditorLineNumbers,
+    setEditorLineWrap,
     setEditorReadOnly,
 } from "./editor";
 import {
@@ -54,6 +55,8 @@ export interface IEditorTab {
     discard(): void;
     /** 设置里改过行号偏好后，对已打开的页签立即生效。 */
     setLineNumbers(show: boolean): void;
+    /** 设置里改过换行偏好后，对已打开的页签立即生效。 */
+    setLineWrap(wrap: boolean): void;
     /** 页签销毁：记光标、暂存未保存内容、释放编辑器。 */
     dispose(): void;
     focus(): void;
@@ -119,6 +122,13 @@ export function createView(custom: Custom, t: T, settings: () => Settings): IEdi
             (preference === "auto" && config().editor.codeSyntaxHighlightLineNum);
     };
 
+    /** 是否自动换行：auto 跟随思源的 editor.codeLineWrap。 */
+    const lineWrapWanted = (): boolean => {
+        const preference = settings().lineWrap;
+        return preference === "on" ||
+            (preference === "auto" && config().editor.codeLineWrap);
+    };
+
     const syncIcons = (): void => {
         searchIcon.setAttribute("aria-label", t("find"));
         saveIcon.setAttribute("aria-label", dirty ? t("saveDirty") : t("save"));
@@ -163,6 +173,11 @@ export function createView(custom: Custom, t: T, settings: () => Settings): IEdi
         setLineNumbers: (show: boolean) => {
             if (editor) {
                 setEditorLineNumbers(editor, show);
+            }
+        },
+        setLineWrap: (wrap: boolean) => {
+            if (editor) {
+                setEditorLineWrap(editor, wrap);
             }
         },
         dispose: () => {
@@ -280,7 +295,7 @@ export function createView(custom: Custom, t: T, settings: () => Settings): IEdi
             language,
             readOnly,
             showLineNumbers: lineNumbersWanted(),
-            lineWrap: config().editor.codeLineWrap,
+            lineWrap: lineWrapWanted(),
             tabSpaces: config().editor.codeTabSpaces,
             t,
             onContextMenu: (event) => {
@@ -344,12 +359,36 @@ function askRestore(link: string, stashedText: string, fileText: string, t: T): 
     });
 }
 
-/** 行号开关在设置里改过之后，对已打开的页签立即生效。 */
-export function refreshLineNumbers(settings: Settings): void {
-    const preference = settings.lineNumbers;
-    const show = preference === "show" ||
-        (preference === "auto" && config().editor.codeSyntaxHighlightLineNum);
+/** 参与「跟随思源设置」的那几项思源编辑器配置。 */
+interface IEditorConf {
+    codeLineWrap: boolean;
+    codeSyntaxHighlightLineNum: boolean;
+}
+
+/** 显示类设置（行号、换行）在设置里改过之后，对已打开的页签立即生效。 */
+export function refreshEditorSettings(settings: Settings, editor: IEditorConf = config().editor): void {
+    const showLineNumbers = settings.lineNumbers === "show" ||
+        (settings.lineNumbers === "auto" && editor.codeSyntaxHighlightLineNum);
+    const wrap = settings.lineWrap === "on" ||
+        (settings.lineWrap === "auto" && editor.codeLineWrap);
     allTabs().forEach((tab) => {
-        tab.setLineNumbers(show);
+        tab.setLineNumbers(showLineNumbers);
+        tab.setLineWrap(wrap);
+    });
+}
+
+/**
+ * 思源自己的编辑器设置改了之后，把「跟随思源设置」的那几项重新算一遍。
+ *
+ * 思源先把这个事件派发给插件、之后才把新配置写进 `window.siyuan.config`，
+ * 所以只能读事件里那份 editor（theme.ts 处理 setAppearance 是同一个处境）。
+ */
+export function watchEditorConfig(plugin: Plugin, settings: () => Settings): void {
+    plugin.eventBus.on("ws-main", (event: CustomEvent<{cmd?: string; data?: {editor?: IEditorConf}}>) => {
+        const editor = event.detail?.data?.editor;
+        if (event.detail?.cmd !== "setConf" || !editor) {
+            return;
+        }
+        refreshEditorSettings(settings(), editor);
     });
 }
