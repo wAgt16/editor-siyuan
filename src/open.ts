@@ -11,6 +11,9 @@
  * 2. 右键菜单：`open-menu-link` 事件里往 detail.menu 加一项，
  *    宿主会把这些项统一包进 id 为 plugin 的「插件」子菜单，
  *    也就是需求里的「菜单 > 插件 > 使用 Editor 打开」。
+ *
+ * 3. 笔记文档的右键菜单：文件树上的 `open-menu-doctree` 同样由宿主包成
+ *    「插件」子菜单，用来只读预览该文档的 .sy 源文件（见 registerSyPreview）。
  */
 import {
     openTab,
@@ -21,7 +24,7 @@ import {
     type Plugin,
 } from "siyuan";
 import {allowedExtensions, hasAllowedExtension, type Settings, type TTakeover} from "./config";
-import {config, stripQuery} from "./util";
+import {baseName, config, stripQuery} from "./util";
 import {ICON_TAB} from "./icons";
 import type {T} from "./i18n";
 
@@ -101,6 +104,50 @@ export function openEditor(deps: IOpenDeps, link: string): void {
     });
 }
 
+/** 笔记文档的 .sy 源文件预览：与资源页签同一个页签类型，但只读到底。 */
+export function openSyPreview(deps: IOpenDeps, notebookId: string, path: string): void {
+    // 落盘位置是 /data/<笔记本ID>/<文档路径>，文档路径形如 /2021….sy
+    const apiPath = `/data/${notebookId}${path}`;
+    if (focusExistingTab(deps.plugin, apiPath)) {
+        return;
+    }
+    void openTab({
+        app: deps.app,
+        custom: {
+            id: deps.plugin.name + TAB_TYPE,
+            icon: ICON_TAB,
+            // 页签标题取文档名（.sy 文件名就是思源里的文档名），去掉扩展名
+            title: baseName(path).replace(/\.sy$/i, ""),
+            data: {link: apiPath, sy: true},
+        },
+    });
+}
+
+/**
+ * 文件树里笔记文档的右键菜单。
+ *
+ * 文档路径在 detail.items 里，已经带了 .sy 扩展名。注意文件夹也会走同一个事件，
+ * 而且 initFileMenu 把 detail.type 写死成 "doc"，所以只能靠 .sy 后缀判断。
+ */
+function registerSyPreview(deps: IOpenDeps): void {
+    deps.plugin.eventBus.on("open-menu-doctree", (event) => {
+        if (!deps.settings().previewSy || event.detail.type !== "doc") {
+            return;
+        }
+        const item = event.detail.items?.[0];
+        if (!item || !item.path.toLowerCase().endsWith(".sy")) {
+            return;
+        }
+        const menuItem: IMenu = {
+            id: "editorSiyuanPreviewSy",
+            label: deps.t("previewSyMenu"),
+            icon: ICON_TAB,
+            click: () => openSyPreview(deps, item.notebookId, item.path),
+        };
+        event.detail.menu.addItem(menuItem);
+    });
+}
+
 export function registerOpenHandlers(deps: IOpenDeps): void {
     deps.plugin.eventBus.on("open-asset", (event) => {
         const settings = deps.settings();
@@ -129,4 +176,6 @@ export function registerOpenHandlers(deps: IOpenDeps): void {
         };
         event.detail.menu.addItem(item);
     });
+
+    registerSyPreview(deps);
 }

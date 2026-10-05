@@ -14,7 +14,7 @@
  */
 import {showMessage, type Custom, type Plugin} from "siyuan";
 import type {EditorView} from "@codemirror/view";
-import {readAssetText, resolveAsset, writeAssetText, type IAssetRef, type IAssetText} from "./asset";
+import {readAssetText, resolveAsset, resolveWorkspaceFile, writeAssetText, type IAssetRef, type IAssetText} from "./asset";
 import {
     createEditor,
     readCursor,
@@ -84,6 +84,8 @@ const megabytes = (bytes: number): string => `${(bytes / 1024 / 1024).toFixed(1)
 
 export function createView(custom: Custom, t: T, settings: () => Settings): IEditorTab {
     const link = String(custom.data?.link ?? "");
+    // .sy 文档预览：只读到底，不提供编辑、保存与暂存
+    const syDoc = custom.data?.sy === true;
 
     const root = document.createElement("div");
     root.className = "editor-siyuan";
@@ -104,11 +106,17 @@ export function createView(custom: Custom, t: T, settings: () => Settings): IEdi
     const saveIcon = root.querySelector<HTMLElement>('[data-type="save"]')!;
     const readonlyIcon = root.querySelector<HTMLElement>('[data-type="readonly"]')!;
 
+    // .sy 预览不提供切回编辑与保存这两个入口，用思源自己的 fn__none 隐藏
+    if (syDoc) {
+        readonlyIcon.classList.add("fn__none");
+        saveIcon.classList.add("fn__none");
+    }
+
     let ref: IAssetRef | undefined;
     let editor: EditorView | undefined;
     let dirty = false;
     // 初始模式取自设置；之后由操作条上的按钮在这个页签内切换，不回写设置
-    let readOnly = settings().openMode === "preview";
+    let readOnly = syDoc || settings().openMode === "preview";
     let language = PLAIN_TEXT;
     let eol: "\n" | "\r\n" = "\n";
     let bom = false;
@@ -152,6 +160,11 @@ export function createView(custom: Custom, t: T, settings: () => Settings): IEdi
 
     const save = async (): Promise<boolean> => {
         if (!ref || !editor) {
+            return false;
+        }
+        if (syDoc) {
+            // 预览的 .sy 文档没有可切换的编辑模式，不能复用「切回编辑后才能保存」那句提示
+            showMessage(t("syReadonly"), 3000);
             return false;
         }
         if (readOnly) {
@@ -264,7 +277,7 @@ export function createView(custom: Custom, t: T, settings: () => Settings): IEdi
             placeholder(t("workspaceReadonly"), true);
             return;
         }
-        const resolved = await resolveAsset(link);
+        const resolved = syDoc ? await resolveWorkspaceFile(link) : await resolveAsset(link);
         if (disposed) {
             return;
         }
@@ -290,7 +303,8 @@ export function createView(custom: Custom, t: T, settings: () => Settings): IEdi
         eol = data.eol;
         bom = data.bom;
         language = rememberedLanguage(ref.link) ?? guessLanguage(ref.link);
-        const stashed = settings().stashUnsaved ? stashedEntry(ref.link) : undefined;
+        // .sy 预览只读，永远不会留下未保存的正文，也就不必问要不要恢复暂存
+        const stashed = !syDoc && settings().stashUnsaved ? stashedEntry(ref.link) : undefined;
         const doc = stashed && stashed.text !== data.text
             ? await askRestore(ref.link, stashed.text, data.text, t)
             : data.text;

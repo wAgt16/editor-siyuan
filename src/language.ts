@@ -23,6 +23,8 @@ const BY_EXTENSION: Record<string, string> = {
     ".json": "json",
     ".jsonc": "json",
     ".json5": "json",
+    // 思源自己的文档格式就是 JSON
+    ".sy": "json",
     ".yaml": "yaml",
     ".yml": "yaml",
     ".toml": "ini",

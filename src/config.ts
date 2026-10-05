@@ -49,6 +49,8 @@ export interface Settings {
     openMode: TOpenMode;
     /** 重新打开时恢复上次的滚动位置与光标。 */
     restoreCursor: boolean;
+    /** 在文件树里右键笔记文档时，是否提供「预览 .sy 文件」。 */
+    previewSy: boolean;
 }
 
 /**
@@ -81,6 +83,7 @@ export const DEFAULT_SETTINGS: Settings = {
     ligatures: "auto",
     openMode: "edit",
     restoreCursor: true,
+    previewSy: false,
 };
 
 const TAKEOVERS: TTakeover[] = ["click", "ctrlClick", "altClick", "shiftClick", "none"];
@@ -106,6 +109,7 @@ export function normalizeSettings(raw: unknown): Settings {
         ligatures: pick(source.ligatures, FOLLOWS, DEFAULT_SETTINGS.ligatures),
         openMode: pick(source.openMode, OPEN_MODES, DEFAULT_SETTINGS.openMode),
         restoreCursor: source.restoreCursor !== false,
+        previewSy: source.previewSy === true,
     };
 }
 

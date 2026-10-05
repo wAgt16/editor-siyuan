@@ -78,6 +78,14 @@ export function openSettingsPanel(options: ISettingsPanelOptions): void {
     });
 
     setting.addItem({
+        title: t("previewSy"),
+        description: t("previewSyTip"),
+        actionElement: switchControl(draft.previewSy, (checked) => {
+            draft.previewSy = checked;
+        }),
+    });
+
+    setting.addItem({
         title: t("extensions"),
         description: t("extensionsTip"),
         direction: "row",
