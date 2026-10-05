@@ -163,9 +163,9 @@ export function openSettingsPanel(options: ISettingsPanelOptions): void {
         title: t("lineNumbers"),
         description: t("lineNumbersTip"),
         actionElement: selectControl(draft.lineNumbers, [
-            {value: "auto", label: t("lineNumbersAuto")},
+            {value: "auto", label: t("followSiYuan")},
             {value: "show", label: t("lineNumbersShow")},
-            {value: "hide", label: t("lineNumbersHide")},
+            {value: "hide", label: t("disable")},
         ], (value) => {
             draft.lineNumbers = value as TLineNumbers;
         }),
