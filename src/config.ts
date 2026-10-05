@@ -77,7 +77,7 @@ export const DEFAULT_EXTENSIONS = [
 export const DEFAULT_SETTINGS: Settings = {
     takeover: "click",
     extensions: DEFAULT_EXTENSIONS,
-    maxSizeMB: 2,
+    maxSizeMB: 5,
     confirmOnClose: true,
     stashUnsaved: true,
     lineNumbers: "show",

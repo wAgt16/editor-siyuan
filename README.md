@@ -48,7 +48,7 @@ The save shortcut is registered as a plugin command. Change it under **Settings 
 | Gesture to take over | Click | Which click is taken over. Every other gesture keeps SiYuan's own behaviour, so Alt or Shift click still opens the system default application and Ctrl click still reveals the file |
 | Preview .sy files | off | Whether right-clicking a note in the file tree offers **Preview .sy file**, a read-only tab with that note's `.sy` source file |
 | File extensions | a list of common text and code extensions | Which assets are opened here. One extension per line |
-| Size limit (MB) | 2 | Larger files are not opened here |
+| Size limit (MB) | 5 | Larger files are not opened here |
 | Confirm before closing | on | Ask before closing a tab with unsaved changes |
 | Stash unsaved changes | on | Keep unsaved content when a tab closes and offer to restore it next time |
 | Mode to open in | Edit | Whether a new tab starts in editing or read-only preview; already open tabs are unaffected |
