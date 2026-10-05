@@ -57,6 +57,8 @@
   "disable": "禁用",
   "lineWrap": "换行",
   "lineWrapTip": "超出编辑器宽度的内容是否自动换行",
+  "ligatures": "连字",
+  "ligaturesTip": "代码字体的连字是否生效，例如 => 与 !=",
   "restoreCursor": "恢复位置",
   "restoreCursorTip": "重新打开同一文件时回到上次的滚动位置与光标",
   "forget": "已记住的内容",

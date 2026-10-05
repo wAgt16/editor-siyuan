@@ -43,6 +43,8 @@ export interface Settings {
     lineNumbers: TLineNumbers;
     /** 超出编辑器宽度时是否自动换行；auto 跟随思源的 `editor.codeLineWrap`。 */
     lineWrap: TFollow;
+    /** 代码字体的连字是否生效；auto 跟随思源的 `editor.codeLigatures`。 */
+    ligatures: TFollow;
     /** 打开页签时先进入编辑还是只读预览。 */
     openMode: TOpenMode;
     /** 重新打开时恢复上次的滚动位置与光标。 */
@@ -76,6 +78,7 @@ export const DEFAULT_SETTINGS: Settings = {
     stashUnsaved: true,
     lineNumbers: "show",
     lineWrap: "auto",
+    ligatures: "auto",
     openMode: "edit",
     restoreCursor: true,
 };
@@ -100,6 +103,7 @@ export function normalizeSettings(raw: unknown): Settings {
         stashUnsaved: source.stashUnsaved !== false,
         lineNumbers: pick(source.lineNumbers, LINE_NUMBERS, DEFAULT_SETTINGS.lineNumbers),
         lineWrap: pick(source.lineWrap, FOLLOWS, DEFAULT_SETTINGS.lineWrap),
+        ligatures: pick(source.ligatures, FOLLOWS, DEFAULT_SETTINGS.ligatures),
         openMode: pick(source.openMode, OPEN_MODES, DEFAULT_SETTINGS.openMode),
         restoreCursor: source.restoreCursor !== false,
     };

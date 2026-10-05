@@ -52,6 +52,7 @@ The save shortcut is registered as a plugin command. Change it under **Settings 
 | Mode to open in | Edit | Whether a new tab starts in editing or read-only preview; already open tabs are unaffected |
 | Line numbers | Always show | Whether the gutter shows line numbers |
 | Line wrap | Follow SiYuan | Whether content wider than the editor wraps automatically |
+| Ligatures | Follow SiYuan | Whether the code font's ligatures apply, such as `=>` and `!=` |
 | Restore position | on | Return to the previous scroll position and cursor |
 | Remembered state | — | How many per-file choices are remembered, and a button to clear them |
 

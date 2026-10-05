@@ -20,6 +20,7 @@ import {
     readCursor,
     restoreCursor,
     setEditorLanguage,
+    setEditorLigatures,
     setEditorLineNumbers,
     setEditorLineWrap,
     setEditorReadOnly,
@@ -57,6 +58,8 @@ export interface IEditorTab {
     setLineNumbers(show: boolean): void;
     /** 设置里改过换行偏好后，对已打开的页签立即生效。 */
     setLineWrap(wrap: boolean): void;
+    /** 设置里改过连字偏好后，对已打开的页签立即生效。 */
+    setLigatures(ligatures: boolean): void;
     /** 页签销毁：记光标、暂存未保存内容、释放编辑器。 */
     dispose(): void;
     focus(): void;
@@ -129,6 +132,13 @@ export function createView(custom: Custom, t: T, settings: () => Settings): IEdi
             (preference === "auto" && config().editor.codeLineWrap);
     };
 
+    /** 连字是否生效：auto 跟随思源的 editor.codeLigatures。 */
+    const ligaturesWanted = (): boolean => {
+        const preference = settings().ligatures;
+        return preference === "on" ||
+            (preference === "auto" && config().editor.codeLigatures);
+    };
+
     const syncIcons = (): void => {
         searchIcon.setAttribute("aria-label", t("find"));
         saveIcon.setAttribute("aria-label", dirty ? t("saveDirty") : t("save"));
@@ -178,6 +188,11 @@ export function createView(custom: Custom, t: T, settings: () => Settings): IEdi
         setLineWrap: (wrap: boolean) => {
             if (editor) {
                 setEditorLineWrap(editor, wrap);
+            }
+        },
+        setLigatures: (ligatures: boolean) => {
+            if (editor) {
+                setEditorLigatures(editor, ligatures);
             }
         },
         dispose: () => {
@@ -296,6 +311,7 @@ export function createView(custom: Custom, t: T, settings: () => Settings): IEdi
             readOnly,
             showLineNumbers: lineNumbersWanted(),
             lineWrap: lineWrapWanted(),
+            ligatures: ligaturesWanted(),
             tabSpaces: config().editor.codeTabSpaces,
             t,
             onContextMenu: (event) => {
@@ -362,18 +378,22 @@ function askRestore(link: string, stashedText: string, fileText: string, t: T): 
 /** 参与「跟随思源设置」的那几项思源编辑器配置。 */
 interface IEditorConf {
     codeLineWrap: boolean;
+    codeLigatures: boolean;
     codeSyntaxHighlightLineNum: boolean;
 }
 
-/** 显示类设置（行号、换行）在设置里改过之后，对已打开的页签立即生效。 */
+/** 显示类设置（行号、换行、连字）在设置里改过之后，对已打开的页签立即生效。 */
 export function refreshEditorSettings(settings: Settings, editor: IEditorConf = config().editor): void {
     const showLineNumbers = settings.lineNumbers === "show" ||
         (settings.lineNumbers === "auto" && editor.codeSyntaxHighlightLineNum);
     const wrap = settings.lineWrap === "on" ||
         (settings.lineWrap === "auto" && editor.codeLineWrap);
+    const ligatures = settings.ligatures === "on" ||
+        (settings.ligatures === "auto" && editor.codeLigatures);
     allTabs().forEach((tab) => {
         tab.setLineNumbers(showLineNumbers);
         tab.setLineWrap(wrap);
+        tab.setLigatures(ligatures);
     });
 }
 

@@ -236,6 +236,8 @@ export interface IEditorOptions {
     showLineNumbers: boolean;
     /** 思源 editor.codeLineWrap。 */
     lineWrap: boolean;
+    /** 代码字体的连字是否生效；思源 editor.codeLigatures。 */
+    ligatures: boolean;
     /** 思源 editor.codeTabSpaces；0 表示用制表符。 */
     tabSpaces: number;
     /** 搜索面板的文案。 */
@@ -287,6 +289,7 @@ export function createEditor(parent: HTMLElement, options: IEditorOptions): Edit
             ],
         }),
     });
+    setEditorLigatures(view, options.ligatures);
     // CodeMirror 已经处理过的按键不再冒泡：⌘F、⌘R 等既是它的搜索快捷键，
     // 也是思源的全局快捷键，不拦住会同时弹出思源的文档搜索。
     // 必须挂在冒泡阶段，才能确定 CodeMirror 已经先看过这个事件。
@@ -318,6 +321,17 @@ export const setEditorLineNumbers = (view: EditorView, show: boolean): void => {
 
 export const setEditorLineWrap = (view: EditorView, wrap: boolean): void => {
     view.dispatch({effects: lineWrapCompartment.reconfigure(wrap ? EditorView.lineWrapping : [])});
+};
+
+/**
+ * 连字开关。
+ *
+ * 与思源代码块的做法一致（protyle/render/highlightRender.ts 给的也是内联样式）：
+ * 关闭时写 none，开启时写 normal。写在 .cm-editor 上由整棵编辑器继承，
+ * 不必为此新增一条要靠选择器权重去压 CodeMirror 的样式规则。
+ */
+export const setEditorLigatures = (view: EditorView, ligatures: boolean): void => {
+    view.dom.style.fontVariantLigatures = ligatures ? "normal" : "none";
 };
 
 export const setEditorLanguage = (view: EditorView, language: string): void => {

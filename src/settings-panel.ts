@@ -176,6 +176,18 @@ export function openSettingsPanel(options: ISettingsPanelOptions): void {
     });
 
     setting.addItem({
+        title: t("ligatures"),
+        description: t("ligaturesTip"),
+        actionElement: selectControl(draft.ligatures, [
+            {value: "auto", label: t("followSiYuan")},
+            {value: "on", label: t("enable")},
+            {value: "off", label: t("disable")},
+        ], (value) => {
+            draft.ligatures = value as TFollow;
+        }),
+    });
+
+    setting.addItem({
         title: t("restoreCursor"),
         description: t("restoreCursorTip"),
         actionElement: switchControl(draft.restoreCursor, (checked) => {
