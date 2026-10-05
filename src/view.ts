@@ -40,6 +40,7 @@ import {debug} from "./debug";
 import {loadHljs} from "./hljs";
 import {closeSearch, toggleSearchPanel} from "./search";
 import {openLanguageMenu} from "./language-menu";
+import {openMoreMenu} from "./more-menu";
 import {openConfirmDialog} from "./dialog";
 import {openEditorMenu} from "./context-menu";
 import {ICON_SAVE} from "./icons";
@@ -96,6 +97,7 @@ export function createView(custom: Custom, t: T, settings: () => Settings): IEdi
 <span class="editor-siyuan__icon" data-type="search"><svg><use xlink:href="#iconSearch"></use></svg></span>
 <span class="editor-siyuan__icon" data-type="readonly"><svg><use xlink:href="#iconEye"></use></svg></span>
 <span class="editor-siyuan__icon" data-type="save"><svg><use xlink:href="#${ICON_SAVE}"></use></svg></span>
+<span class="editor-siyuan__icon" data-type="more"><svg><use xlink:href="#iconMore"></use></svg></span>
 </div>
 <div class="editor-siyuan__body">
 <div class="editor-siyuan__mount"></div>
@@ -106,6 +108,7 @@ export function createView(custom: Custom, t: T, settings: () => Settings): IEdi
     const searchIcon = root.querySelector<HTMLElement>('[data-type="search"]')!;
     const saveIcon = root.querySelector<HTMLElement>('[data-type="save"]')!;
     const readonlyIcon = root.querySelector<HTMLElement>('[data-type="readonly"]')!;
+    const moreIcon = root.querySelector<HTMLElement>('[data-type="more"]')!;
 
     // .sy 预览不提供切回编辑与保存这两个入口，用思源自己的 fn__none 隐藏
     if (syDoc) {
@@ -154,6 +157,7 @@ export function createView(custom: Custom, t: T, settings: () => Settings): IEdi
         saveIcon.classList.toggle("editor-siyuan__icon--dirty", dirty);
         readonlyIcon.setAttribute("aria-label", readOnly ? t("switchToEdit") : t("switchToPreview"));
         readonlyIcon.innerHTML = `<svg><use xlink:href="#${readOnly ? "iconEdit" : "iconEye"}"></use></svg>`;
+        moreIcon.setAttribute("aria-label", t("more"));
         // 空标签会被思源自己的 CSS 补上 "language"，加载完成前保持空
         languageLabel.textContent = editor ? language : "";
         languageLabel.setAttribute("aria-label", t("languageLabel"));
@@ -269,6 +273,14 @@ export function createView(custom: Custom, t: T, settings: () => Settings): IEdi
             rememberLanguage(link, picked);
             syncIcons();
         });
+    });
+    // 更多菜单右对齐到按钮：思源自己的图标按钮菜单都是这么开的（isLeft 在 openMoreMenu 里给）
+    moreIcon.addEventListener("click", () => {
+        if (!editor) {
+            return;
+        }
+        const rect = moreIcon.getBoundingClientRect();
+        openMoreMenu({view: editor, language, link, readOnly, t}, rect.right, rect.bottom);
     });
 
     registry.add(tab);

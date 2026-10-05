@@ -29,3 +29,22 @@ interface IHljs {
 interface Window {
     hljs?: IHljs;
 }
+
+// uglify-js 与 csso 都不带类型声明，这里只补本插件用到的那两个入口。
+// uglify-js 的 main 指向 Node 专用的 tools/node.js，浏览器入口是 tools/exports.js。
+declare module "uglify-js/tools/exports.js" {
+    interface IUglifyResult {
+        code?: string;
+        error?: Error;
+    }
+
+    function minify(code: string, options?: Record<string, unknown>): IUglifyResult;
+}
+
+declare module "csso" {
+    interface ICssoResult {
+        css: string;
+    }
+
+    function minify(source: string, options?: {restructure?: boolean}): ICssoResult;
+}

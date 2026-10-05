@@ -88,5 +88,10 @@
   "undo": "Undo",
   "redo": "Redo",
   "find": "Find",
+  "more": "More",
+  "formatCode": "Format code",
+  "minifyCode": "Minify code",
+  "formatFailed": "Formatting failed",
+  "minifyFailed": "Minification failed",
   "pasteFailed": "Cannot read the clipboard"
 }

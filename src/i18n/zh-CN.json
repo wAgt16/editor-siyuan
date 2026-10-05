@@ -88,5 +88,10 @@
   "undo": "撤销",
   "redo": "重做",
   "find": "查找",
+  "more": "更多",
+  "formatCode": "代码格式化",
+  "minifyCode": "代码压缩",
+  "formatFailed": "格式化失败",
+  "minifyFailed": "压缩失败",
   "pasteFailed": "无法读取剪贴板"
 }
