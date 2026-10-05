@@ -36,6 +36,7 @@ import {
     type Settings,
 } from "./config";
 import {guessLanguage, PLAIN_TEXT} from "./language";
+import {debug} from "./debug";
 import {loadHljs} from "./hljs";
 import {closeSearch, toggleSearchPanel} from "./search";
 import {openLanguageMenu} from "./language-menu";
@@ -173,12 +174,14 @@ export function createView(custom: Custom, t: T, settings: () => Settings): IEdi
         }
         const error = await writeAssetText(ref, {text: editor.state.doc.toString(), eol, bom});
         if (error) {
+            debug("save failed", ref.apiPath, error);
             showMessage(`${t("saveFailed")}: ${error}`, 6000, "error");
             return false;
         }
         dirty = false;
         dropStash(ref.link);
         syncIcons();
+        debug("saved", ref.apiPath);
         showMessage(t("saved"), 2000);
         return true;
     };
@@ -210,6 +213,7 @@ export function createView(custom: Custom, t: T, settings: () => Settings): IEdi
         },
         dispose: () => {
             disposed = true;
+            debug("dispose tab", {link, dirty, readOnly});
             if (editor) {
                 if (settings().restoreCursor) {
                     rememberCursor(link, readCursor(editor));
@@ -282,11 +286,14 @@ export function createView(custom: Custom, t: T, settings: () => Settings): IEdi
             return;
         }
         if (resolved.kind === "error") {
+            debug("resolve failed", {link, syDoc, message: resolved.message});
             placeholder(t("openFailed", {message: resolved.message}), true);
             return;
         }
         ref = resolved.ref;
+        debug("resolved", {link: ref.link, apiPath: ref.apiPath, size: ref.size});
         if (ref.size > settings().maxSizeMB * 1024 * 1024) {
+            debug("too large", {size: ref.size, limitMB: settings().maxSizeMB});
             placeholder(t("tooLarge", {size: megabytes(ref.size), limit: settings().maxSizeMB}), true);
             return;
         }
@@ -294,6 +301,7 @@ export function createView(custom: Custom, t: T, settings: () => Settings): IEdi
         try {
             data = await readAssetText(ref);
         } catch (error) {
+            debug("read failed", ref.apiPath, error);
             placeholder(t("openFailed", {message: error instanceof Error ? error.message : String(error)}), true);
             return;
         }
@@ -346,6 +354,14 @@ export function createView(custom: Custom, t: T, settings: () => Settings): IEdi
         }
         syncIcons();
         editor.focus();
+        debug("editor ready", {
+            link: ref.link,
+            language,
+            readOnly,
+            stashRestored: dirty,
+            cursor: cursor?.anchor,
+            length: data.text.length,
+        });
     })();
 
     return tab;

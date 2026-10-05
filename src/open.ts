@@ -24,6 +24,7 @@ import {
     type Plugin,
 } from "siyuan";
 import {allowedExtensions, hasAllowedExtension, type Settings, type TTakeover} from "./config";
+import {debug} from "./debug";
 import {baseName, config, stripQuery} from "./util";
 import {ICON_TAB} from "./icons";
 import type {T} from "./i18n";
@@ -90,8 +91,10 @@ function focusExistingTab(plugin: Plugin, link: string): boolean {
 
 export function openEditor(deps: IOpenDeps, link: string): void {
     if (focusExistingTab(deps.plugin, link)) {
+        debug("open tab: focus the open tab", link);
         return;
     }
+    debug("open tab", link);
     void openTab({
         app: deps.app,
         custom: {
@@ -108,7 +111,9 @@ export function openEditor(deps: IOpenDeps, link: string): void {
 export function openSyPreview(deps: IOpenDeps, notebookId: string, path: string): void {
     // 落盘位置是 /data/<笔记本ID>/<文档路径>，文档路径形如 /2021….sy
     const apiPath = `/data/${notebookId}${path}`;
+    debug("preview .sy", apiPath);
     if (focusExistingTab(deps.plugin, apiPath)) {
+        debug("preview .sy: focus the open tab");
         return;
     }
     void openTab({
@@ -131,10 +136,15 @@ export function openSyPreview(deps: IOpenDeps, notebookId: string, path: string)
  */
 function registerSyPreview(deps: IOpenDeps): void {
     deps.plugin.eventBus.on("open-menu-doctree", (event) => {
+        const item = event.detail.items?.[0];
+        debug("open-menu-doctree", {
+            type: event.detail.type,
+            path: item?.path,
+            previewSy: deps.settings().previewSy,
+        });
         if (!deps.settings().previewSy || event.detail.type !== "doc") {
             return;
         }
-        const item = event.detail.items?.[0];
         if (!item || !item.path.toLowerCase().endsWith(".sy")) {
             return;
         }
@@ -151,20 +161,26 @@ function registerSyPreview(deps: IOpenDeps): void {
 export function registerOpenHandlers(deps: IOpenDeps): void {
     deps.plugin.eventBus.on("open-asset", (event) => {
         const settings = deps.settings();
+        const gesture = gestureOf(event.detail.event);
+        debug("open-asset", {path: event.detail.path, gesture, takeover: settings.takeover});
         if (settings.takeover === "none") {
             return;
         }
         const link = candidate(event.detail.path, settings);
-        if (!link || gestureOf(event.detail.event) !== settings.takeover) {
+        if (!link || gesture !== settings.takeover) {
+            debug("open-asset: left to SiYuan", {link, reason: link ? "gesture" : "not whitelisted"});
             return;
         }
+        debug("open-asset: take over", link);
         // 同步拦下，默认的 shell.openPath 就不会执行
         event.preventDefault();
         openEditor(deps, link);
     });
 
     deps.plugin.eventBus.on("open-menu-link", (event: CustomEvent<IMenuBaseDetail>) => {
-        const link = candidate(event.detail.element?.getAttribute("data-href"), deps.settings());
+        const href = event.detail.element?.getAttribute("data-href");
+        const link = candidate(href, deps.settings());
+        debug("open-menu-link", {href, link});
         if (!link) {
             return;
         }

@@ -65,6 +65,8 @@
   "ligaturesTip": "代码字体的连字是否生效，例如 => 与 !=",
   "restoreCursor": "恢复位置",
   "restoreCursorTip": "重新打开同一文件时回到上次的滚动位置与光标",
+  "debugMode": "调试模式",
+  "debugModeTip": "在浏览器控制台输出详细日志，供排查问题使用",
   "forget": "已记住的内容",
   "forgetTip": "会记住每个文件选择的语言、光标位置，以及未保存的暂存内容",
   "forgetButton": "清除（{count}）",

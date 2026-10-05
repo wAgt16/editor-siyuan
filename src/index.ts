@@ -9,6 +9,7 @@
 import {Plugin, showMessage, type Custom} from "siyuan";
 import "./index.scss";
 import {DEFAULT_SETTINGS, forgetMemories, initStore, normalizeSettings, SETTINGS_FILE, type Settings} from "./config";
+import {debug, setDebug} from "./debug";
 import {ICONS} from "./icons";
 import {makeT, type T} from "./i18n";
 import {loadHljs} from "./hljs";
@@ -16,6 +17,7 @@ import {registerOpenHandlers, TAB_TYPE} from "./open";
 import {openSettingsPanel} from "./settings-panel";
 import {registerCloseGuard} from "./close-guard";
 import {watchCodeTheme} from "./theme";
+import {config} from "./util";
 import {createView, focusedTab, refreshEditorSettings, watchEditorConfig, type IEditorTab} from "./view";
 
 export default class EditorPlugin extends Plugin {
@@ -36,6 +38,18 @@ export default class EditorPlugin extends Plugin {
             stored = undefined;
         }
         this.settings = normalizeSettings(stored);
+        setDebug(this.settings.debug);
+        debug("loaded", {
+            plugin: this.name,
+            settings: this.settings,
+            editor: {
+                codeLineWrap: config().editor.codeLineWrap,
+                codeLigatures: config().editor.codeLigatures,
+                codeSyntaxHighlightLineNum: config().editor.codeSyntaxHighlightLineNum,
+                codeTabSpaces: config().editor.codeTabSpaces,
+            },
+            workspaceDir: config().system?.workspaceDir,
+        });
 
         watchCodeTheme(this);
         // 思源自己的编辑器设置改了之后，「跟随思源设置」的那几项也要跟着变
@@ -99,6 +113,8 @@ export default class EditorPlugin extends Plugin {
 
     private async applySettings(next: Settings): Promise<void> {
         this.settings = next;
+        setDebug(next.debug);
+        debug("settings saved", next);
         try {
             await this.saveData(SETTINGS_FILE, next);
         } catch (error) {

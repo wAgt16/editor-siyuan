@@ -19,6 +19,7 @@
  * 再重新插入，我们跟着它会被一起摘掉。
  */
 import type {Plugin} from "siyuan";
+import {debug} from "./debug";
 import {config} from "./util";
 
 const HLJS_CDN = "/stage/protyle/js/highlight.js";
@@ -79,8 +80,10 @@ function applyTheme(name: string, fallback: string): void {
 
 function applyAppearance(source: ICodeThemeSource): void {
     if (source.mode === 0) {
+        debug("code theme", {mode: "light", name: source.codeBlockThemeLight});
         applyTheme(source.codeBlockThemeLight || FALLBACK_LIGHT, FALLBACK_LIGHT);
     } else {
+        debug("code theme", {mode: "dark", name: source.codeBlockThemeDark});
         applyTheme(source.codeBlockThemeDark || FALLBACK_DARK, FALLBACK_DARK);
     }
 }

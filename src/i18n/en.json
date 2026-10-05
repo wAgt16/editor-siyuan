@@ -65,6 +65,8 @@
   "ligaturesTip": "Whether the code font's ligatures apply, such as => and !=",
   "restoreCursor": "Restore position",
   "restoreCursorTip": "Return to the previous scroll position and cursor when the same file is reopened",
+  "debugMode": "Debug mode",
+  "debugModeTip": "Write detailed logs to the browser console for troubleshooting",
   "forget": "Remembered state",
   "forgetTip": "Remembers the language chosen per file, the cursor position, and stashed changes",
   "forgetButton": "Clear ({count})",

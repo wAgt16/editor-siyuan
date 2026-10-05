@@ -204,6 +204,14 @@ export function openSettingsPanel(options: ISettingsPanelOptions): void {
     });
 
     setting.addItem({
+        title: t("debugMode"),
+        description: t("debugModeTip"),
+        actionElement: switchControl(draft.debug, (checked) => {
+            draft.debug = checked;
+        }),
+    });
+
+    setting.addItem({
         title: t("forget"),
         description: t("forgetTip"),
         createActionElement: () => {

@@ -20,6 +20,7 @@ import {Menu, showMessage} from "siyuan";
 import {redo, redoDepth, selectAll, undo, undoDepth} from "@codemirror/commands";
 import {openSearchPanel} from "@codemirror/search";
 import type {EditorView} from "@codemirror/view";
+import {debug} from "./debug";
 import {ICON_SAVE} from "./icons";
 import {config} from "./util";
 import type {T} from "./i18n";
@@ -64,6 +65,7 @@ export function openEditorMenu(deps: IMenuDeps, x: number, y: number): void {
     const {view, t, readOnly} = deps;
     // 重做的按键跟随 CodeMirror 的 historyKeymap：mac 是 ⇧⌘Z，其他平台是 Ctrl+Y
     const redoKey = config().system?.os === "darwin" ? "⇧⌘Z" : "⌘Y";
+    debug("editor menu", {x, y, readOnly, hasSelection: !view.state.selection.main.empty});
     const menu = new Menu();
 
     // 与思源一致：没有选区就不给剪切、复制
