@@ -38,6 +38,23 @@ The file is written back as UTF-8, keeping its original byte order mark and line
 
 The save shortcut is registered as a plugin command. Change it under **Settings - Keymap - Plugins**.
 
+## Formatting and minification
+
+The **More** menu at the right end of the action bar holds **Format code** and **Minify code**. Both rewrite the whole document, both only touch the undo stack until you save, and `Ctrl+Z` takes either of them back in one step. In preview mode both are greyed out.
+
+A note's code blocks get the same two entries under **More - Plugins**, acting on that one block and again only touching the undo stack. The block's own language decides what is offered: languages this plugin does not implement (Python, Go and so on) get no entries at all, and in a read-only document they are greyed out. The whole thing can be turned off in the settings.
+
+| Language | Format | Minify |
+| --- | --- | --- |
+| JavaScript | yes | yes |
+| JSON / JSONC | yes | yes |
+| CSS | yes | yes |
+| TypeScript / TSX, SCSS, LESS, HTML / XML / Vue, YAML, Markdown | yes | — |
+
+Formatting uses [prettier](https://prettier.io/). JavaScript minification uses [uglify-js](https://github.com/mishoo/UglifyJS), which also mangles local variable names; CSS minification uses [csso](https://github.com/css/csso) — comments and whitespace only, no rule merging; JSON goes through `JSON.parse` + `JSON.stringify`, so comments and trailing commas in JSONC are dropped. Indentation follows SiYuan's code block tab size.
+
+TypeScript, JSX, SCSS, LESS, HTML, YAML and Markdown have no dependable in-browser minifier, so they are format-only.
+
 ## Settings
 
 **Settings - Marketplace - Downloaded - Plugins - Editor - Settings**.
@@ -47,6 +64,7 @@ The save shortcut is registered as a plugin command. Change it under **Settings 
 | Open asset text files in a tab | on | Whether a click on a whitelisted link opens this editor instead of the system default application |
 | Gesture to take over | Click | Which click is taken over. Every other gesture keeps SiYuan's own behaviour, so Alt or Shift click still opens the system default application and Ctrl click still reveals the file |
 | Preview .sy files | off | Whether a note's menu gains an entry that opens its `.sy` source file in a read-only tab |
+| Format and minify code blocks | on | Whether a note's code block menu gains Format code and Minify code |
 | File extensions | a list of common text and code extensions | Which assets are opened here. One extension per line |
 | Size limit (MB) | 5 | Larger files are not opened here |
 | Confirm before closing | on | Ask before closing a tab with unsaved changes |
@@ -80,6 +98,7 @@ These are consequences of the plugin API, not oversights.
 - **Highlighting reuses SiYuan's own static assets** at `/stage/protyle/js/highlight.js/` — the same script and stylesheet its code blocks use, so token classification and colours match exactly. If a future SiYuan version moves that path, highlighting degrades to plain text.
 - **Highlighting recomputes the whole document on every change**, as long as one pass stays under 8 ms. How much text that budget covers depends on the content: prose and Markdown go furthest, dense code least. Larger files fall back to re-highlighting once you stop typing, so their colours settle a moment later.
 - **Line numbers are CodeMirror's gutter**, restyled to SiYuan's metrics and painted with the editor background. SiYuan's own code block builds its line-number column by hand, so the two are not pixel-identical.
+- **Formatting and minification run on the main thread.** prettier and uglify-js compute in the renderer, so a file of a few MB stalls the UI for a few seconds; an edit made while they run causes the result to be discarded. All three libraries are bundled into `index.js`, which grows the package by roughly 700 KB.
 - **No detection of outside changes.** If another program edits the file while its tab is open, the change is not noticed until the tab is reopened.
 
 ## Development
