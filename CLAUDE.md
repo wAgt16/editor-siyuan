@@ -5,11 +5,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 - `npm run typecheck` — `tsc --noEmit`. Run after touching `src/`.
+- `npm run typecheck:tests` — `tsc -p tests/tsconfig.json --noEmit`. Typechecks the test suite against the same strict settings.
+- `npm test` — Vitest (jsdom) runs every `tests/**/*.test.ts`.
+- `npm run test:coverage` — same suite with a V8 coverage report in `coverage/` (gitignored).
 - `npm run build` — `vite build && node scripts/build-package.mjs`. Also writes `package.zip` at the repo root; that zip is the installable plugin package. Run after typecheck for anything that can affect bundling.
 - `npm run icon` — re-renders `assets/icon.png` from `assets/icon.svg`, then re-shoots `assets/preview.png`. Needs Chromium for Playwright (`npx playwright install chromium`, once per machine).
 - `npm run preview` — re-shoots `assets/preview.png` from `assets/preview.html` alone.
 
-There is no test framework, linter or formatter here, and no config for one. Do not add one unprompted. Verification is `npm run typecheck` plus `npm run build`; loading the plugin into SiYuan is the maintainer's job, so never operate their SiYuan installation, including through MCP tools.
+Tests live in `tests/` (`unit/` for pure logic, `dom/` for jsdom components). `vitest.config.ts` aliases `siyuan` to `tests/support/siyuan.ts`: the SDK ships types only, so that mock implements the host APIs the plugin actually calls. There is no linter or formatter here. Verification is `npm run typecheck`, `npm run typecheck:tests`, `npm test` and `npm run build`; loading the plugin into SiYuan is the maintainer's job, so never operate their SiYuan installation, including through MCP tools.
 
 `npm run dev` is a watch build — don't start it, `npm run build` covers the same ground. Do not push: the maintainer decides when a release happens.
 
