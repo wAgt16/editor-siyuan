@@ -21,7 +21,7 @@ Only files in the workspace's `assets/` folder are handled. Links to absolute pa
 ## Requirements
 
 - SiYuan 3.8.3 or later.
-- Desktop, Docker deployments opened in a desktop browser, and mobile (the phone app and a phone browser). SiYuan's custom tab API is a no-op on mobile, so mobile has no tabs; the same editor is mounted in a full-screen dialog instead. `plugin.json` declares the Windows, macOS, Linux and Docker backends and the desktop, browser-desktop, mobile and browser-mobile frontends.
+- Desktop, Docker deployments opened in a desktop browser, and mobile (the phone app and a phone browser). SiYuan's custom tab API is a no-op on mobile, so mobile has no tabs; the same editor is mounted in a full-screen dialog instead. `plugin.json` declares `all` for both backends and frontends.
 - The administrator role. Locating and writing an asset uses `/api/asset/resolveAssetPath`, `/api/asset/statAsset` and `/api/file/putFile`, which SiYuan restricts to administrators. A single-user local workspace is always an administrator.
 
 ## Install
