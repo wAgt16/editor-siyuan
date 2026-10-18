@@ -160,9 +160,23 @@
   padding: 0 12px 0 0;
 }
 
-// 选中态与思源一致：思源全局 ::selection 用的是 --b3-theme-primary-lighter
-.editor-siyuan .cm-editor .cm-selectionBackground {
+// 选区底色。
+//
+// 不能只写三条类：drawSelection 画选区用的是
+// `&light.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground`，
+// 算下来五个类，而且它的样式表排在插件之后。这里跟着同一套结构写，六个类稳压它。
+//
+// 颜色取思源主色的半透明版本：深色下是偏暗的蓝、浅色下是浅蓝，选区里的 token 颜色仍按
+// 主题着色，不会被底色盖住。旧浏览器不认 color-mix 时用第一条——思源自己的半透明主色。
+.editor-siyuan .cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground {
   background-color: var(--b3-theme-primary-lighter);
+  background-color: color-mix(in srgb, var(--b3-theme-primary) 34%, transparent);
+}
+
+// 失焦后选区还留着的时候（焦点去了别的面板）：CodeMirror 默认给它灰色。
+.editor-siyuan .cm-editor .cm-selectionLayer .cm-selectionBackground {
+  background-color: var(--b3-theme-primary-lighter);
+  background-color: color-mix(in srgb, var(--b3-theme-primary) 34%, transparent);
 }
 
 .editor-siyuan .cm-editor .cm-cursor {
