@@ -2,12 +2,12 @@
 
 English | [简体中文](./README.zh-CN.md)
 
-Open and edit the text files a note links to, in a SiYuan tab of their own. The editor uses your SiYuan code font and your chosen syntax colours.
+Open and edit the text files a note links to, inside SiYuan. The editor uses your SiYuan code font and your chosen syntax colours.
 
 
 ## What it does
 
-SiYuan renders a link to a file in `assets/` as an ordinary hyperlink. Clicking it hands the file to the system default application — a text editor, or nothing at all. This plugin opens it in SiYuan instead, in a custom tab with syntax highlighting, line numbers, search and undo.
+SiYuan renders a link to a file in `assets/` as an ordinary hyperlink. Clicking it hands the file to the system default application — a text editor, or nothing at all. This plugin opens it in SiYuan instead, in a custom tab with syntax highlighting, line numbers, search and undo on desktop, and in a full-screen dialog on mobile.
 
 Four ways in:
 
@@ -21,7 +21,7 @@ Only files in the workspace's `assets/` folder are handled. Links to absolute pa
 ## Requirements
 
 - SiYuan 3.8.3 or later.
-- Desktop only. SiYuan's plugin API for custom tabs is a no-op on mobile, and the settings here are declared for Windows, macOS and Linux.
+- Desktop, Docker deployments opened in a desktop browser, and mobile (the phone app and a phone browser). SiYuan's custom tab API is a no-op on mobile, so mobile has no tabs; the same editor is mounted in a full-screen dialog instead. `plugin.json` declares `all` for both backends and frontends.
 - The administrator role. Locating and writing an asset uses `/api/asset/resolveAssetPath`, `/api/asset/statAsset` and `/api/file/putFile`, which SiYuan restricts to administrators. A single-user local workspace is always an administrator.
 
 ## Install
@@ -61,15 +61,15 @@ TypeScript, JSX, SCSS, LESS, HTML, YAML and Markdown have no dependable in-brows
 
 | Setting | Default | Meaning |
 | --- | --- | --- |
-| Open asset text files in a tab | on | Whether a click on a whitelisted link opens this editor instead of the system default application |
-| Gesture to take over | Click | Which click is taken over. Every other gesture keeps SiYuan's own behaviour, so Alt or Shift click still opens the system default application and Ctrl click still reveals the file |
+| Take over clicks on asset text files | on | Whether a click on a whitelisted link opens this editor instead of the system default application |
+| Gesture to take over | Click | Which click is taken over. Every other gesture keeps SiYuan's own behaviour, so Alt or Shift click still opens the system default application and Ctrl click still reveals the file. Mobile has no modifier keys, so this row is hidden there and a tap always takes over |
 | Preview .sy files | off | Whether a note's menu gains an entry that opens its `.sy` source file in a read-only tab |
 | Format and minify code blocks | on | Whether a note's code block menu gains Format code and Minify code |
 | File extensions | a list of common text and code extensions | Which assets are opened here. One extension per line |
 | Size limit (MB) | 5 | Larger files are not opened here |
-| Confirm before closing | on | Ask before closing a tab with unsaved changes |
-| Stash unsaved changes | on | Keep unsaved content when a tab closes and offer to restore it next time |
-| Mode to open in | Edit | Whether a new tab starts in editing or read-only preview; already open tabs are unaffected |
+| Confirm before closing | on | Ask before closing an editor with unsaved changes |
+| Stash unsaved changes | on | Keep unsaved content when an editor closes and offer to restore it next time |
+| Mode to open in | Edit | Whether a newly opened file starts in editing or read-only preview; editors already open are unaffected |
 | Line numbers | Always show | Whether the gutter shows line numbers |
 | Line wrap | Follow SiYuan | Whether content wider than the editor wraps automatically |
 | Ligatures | Follow SiYuan | Whether the code font's ligatures apply, such as `=>` and `!=` |
@@ -81,11 +81,11 @@ TypeScript, JSX, SCSS, LESS, HTML, YAML and Markdown have no dependable in-brows
 
 | Key | Action |
 | --- | --- |
-| `Ctrl+S` / `Cmd+S` | Save the file in the active editor tab. Rebindable. |
+| `Ctrl+S` / `Cmd+S` | Save the file in the active editor. Rebindable. |
 | `Ctrl+F` / `Cmd+F` | Open the in-file search panel, or close it when it is open |
 | `Ctrl+W` / `Cmd+W` | SiYuan's own "close tab"; asks for confirmation when there are unsaved changes |
 
-The search icon in the tab's action bar does the same: it toggles the panel. Right-clicking it closes the panel without opening it.
+The search icon in the tab's action bar does the same: it toggles the panel. Right-clicking it closes the panel without opening it. Mobile has no hardware keyboard; save with the button in the action bar.
 
 ## Known limitations
 
@@ -100,6 +100,10 @@ These are consequences of the plugin API, not oversights.
 - **Line numbers are CodeMirror's gutter**, restyled to SiYuan's metrics and painted with the editor background. SiYuan's own code block builds its line-number column by hand, so the two are not pixel-identical.
 - **Formatting and minification run on the main thread.** prettier and uglify-js compute in the renderer, so a file of a few MB stalls the UI for a few seconds; an edit made while they run causes the result to be discarded. All three libraries are bundled into `index.js`, which grows the package by roughly 700 KB.
 - **No detection of outside changes.** If another program edits the file while its tab is open, the change is not noticed until the tab is reopened.
+- **In a browser, `Ctrl+W` closes the browser's own tab**, which the plugin cannot intercept; all it can do is let `beforeunload` raise the browser's generic confirmation. On Docker and the web frontend, neither the close confirmation nor the stash runs on that path.
+- **The context menu's Paste entry may be greyed out in a browser.** Browsers forbid scripted pasting, leaving only the async clipboard, which needs HTTPS or localhost; without it the entry is greyed out. Pressing `Ctrl+V` in the document itself is unaffected.
+- **Mobile has no tabs.** The same editor is mounted in a full-screen dialog, and only the × at the left end of the action bar closes it — that button owns the unsaved-changes confirmation. The mobile back key and system gestures never reach the plugin, and are covered by the stash.
+- **Mobile always takes over plain taps.** Mobile has no modifier keys, so the gesture row is hidden and an Alt or Ctrl click saved on desktop is treated as a plain click there.
 
 ## Development
 

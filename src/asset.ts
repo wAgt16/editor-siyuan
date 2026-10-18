@@ -17,6 +17,7 @@ const GET_FILE = "/api/file/getFile";
 const PUT_FILE = "/api/file/putFile";
 const RESOLVE_ASSET = "/api/asset/resolveAssetPath";
 const STAT_ASSET = "/api/asset/statAsset";
+const WORKSPACE_INFO = "/api/system/getWorkspaceInfo";
 
 const UTF8_BOM = new Uint8Array([0xEF, 0xBB, 0xBF]);
 
@@ -58,13 +59,46 @@ export type TResolveResult =
     | {kind: "ok"; ref: IAssetRef}
     | {kind: "error"; message: string};
 
-/** 绝对路径 → 工作区相对路径；不在 workspace/data 之下时返回 undefined。 */
-function toApiPath(absolute: string): string | undefined {
-    const workspace = config().system?.workspaceDir;
-    if (!workspace || !absolute) {
+/** 绝对路径统一成正斜杠、去掉尾部分隔符，好做前缀比较。 */
+const normalizeRoot = (path: string): string => path.replaceAll("\\", "/").replace(/\/+$/, "");
+
+let cachedRoot: string | undefined;
+
+/**
+ * 工作区绝对路径。
+ *
+ * 浏览器前端（Docker、网页版）拿不到它：内核在 `/api/system/getConf` 里会把
+ * workspaceDir 连同其它绝对路径一起抹掉，免得把用户名之类的目录信息泄露给浏览器。
+ * 那种情况下改问 `/api/system/getWorkspaceInfo`——它只对管理员开放，与定位、
+ * 写回资源所需的权限是同一档，拿不到就意味着后面几步本来也做不了。
+ */
+async function workspaceDir(): Promise<string | undefined> {
+    if (cachedRoot) {
+        return cachedRoot;
+    }
+    const fromConfig = config().system?.workspaceDir;
+    if (fromConfig) {
+        cachedRoot = normalizeRoot(fromConfig);
+        return cachedRoot;
+    }
+    try {
+        const info = await postJson<{workspaceDir?: string}>(WORKSPACE_INFO, {});
+        if (info.code !== 0 || !info.data?.workspaceDir) {
+            return undefined;
+        }
+        cachedRoot = normalizeRoot(info.data.workspaceDir);
+        return cachedRoot;
+    } catch {
+        // 旧内核没有这个接口、或当前不是管理员：退回「无法定位」，与之前的表现一致
         return undefined;
     }
-    const root = workspace.replaceAll("\\", "/").replace(/\/+$/, "");
+}
+
+/** 绝对路径 → 工作区相对路径；不在 workspace/data 之下时返回 undefined。 */
+function toApiPath(absolute: string, root: string): string | undefined {
+    if (!absolute) {
+        return undefined;
+    }
     const normalized = absolute.replaceAll("\\", "/");
     if (!normalized.startsWith(`${root}/data/`)) {
         return undefined;
@@ -88,7 +122,8 @@ export async function resolveAsset(link: string): Promise<TResolveResult> {
         if (resolved.code !== 0) {
             return {kind: "error", message: resolved.msg || `code ${resolved.code}`};
         }
-        const apiPath = toApiPath(resolved.data);
+        const root = await workspaceDir();
+        const apiPath = root ? toApiPath(resolved.data, root) : undefined;
         if (!apiPath) {
             // 加密笔记本的资源会被解析成 temp 下的明文副本，写回那份副本等于丢改动
             return {kind: "error", message: "encrypted or outside workspace"};
@@ -113,11 +148,11 @@ export async function resolveAsset(link: string): Promise<TResolveResult> {
  * 把相对路径拼回 `file://` URL——内核会校验它确实落在工作区内。
  */
 export async function resolveWorkspaceFile(apiPath: string): Promise<TResolveResult> {
-    const workspace = config().system?.workspaceDir;
-    if (!apiPath.startsWith("/data/") || !workspace) {
+    const root = await workspaceDir();
+    if (!apiPath.startsWith("/data/") || !root) {
         return {kind: "error", message: "not a workspace file"};
     }
-    const absolute = `${workspace.replaceAll("\\", "/").replace(/\/+$/, "")}${apiPath}`;
+    const absolute = `${root}${apiPath}`;
     try {
         const stat = await postJson<{size: number}>(STAT_ASSET, {path: `file://${absolute}`});
         if (stat.code !== 0) {

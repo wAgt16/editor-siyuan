@@ -14,6 +14,8 @@
  *
  * 3. 笔记文档的右键菜单：文件树上的 `open-menu-doctree` 同样由宿主包成
  *    「插件」子菜单，用来只读预览该文档的 .sy 源文件（见 registerSyPreview）。
+ *
+ * 移动端没有自定义页签，前两条入口改由 mobile.ts 的全屏对话框承载。
  */
 import {
     openTab,
@@ -26,6 +28,8 @@ import {
 } from "siyuan";
 import {allowedExtensions, hasAllowedExtension, type Settings, type TTakeover} from "./config";
 import {debug} from "./debug";
+import {isMobileFrontend} from "./frontend";
+import {openMobileEditor} from "./mobile";
 import {baseName, config, stripQuery} from "./util";
 import {ICON_TAB} from "./icons";
 import type {T} from "./i18n";
@@ -91,6 +95,11 @@ function focusExistingTab(plugin: Plugin, link: string): boolean {
 }
 
 export function openEditor(deps: IOpenDeps, link: string): void {
+    if (isMobileFrontend()) {
+        // 标题只放文件名：资源链接恒为 assets/<文件名>，带上目录不会增加区分度
+        openMobileEditor(deps, {link}, link.slice("assets/".length));
+        return;
+    }
     if (focusExistingTab(deps.plugin, link)) {
         debug("open tab: focus the open tab", link);
         return;
@@ -113,6 +122,11 @@ export function openSyPreview(deps: IOpenDeps, notebookId: string, path: string)
     // 落盘位置是 /data/<笔记本ID>/<文档路径>，文档路径形如 /2021….sy
     const apiPath = `/data/${notebookId}${path}`;
     debug("preview .sy", apiPath);
+    if (isMobileFrontend()) {
+        // 标题取文档名（.sy 文件名就是思源里的文档名），去掉扩展名
+        openMobileEditor(deps, {link: apiPath, sy: true}, baseName(path).replace(/\.sy$/i, ""));
+        return;
+    }
     if (focusExistingTab(deps.plugin, apiPath)) {
         debug("preview .sy: focus the open tab");
         return;
@@ -178,12 +192,14 @@ export function registerOpenHandlers(deps: IOpenDeps): void {
     deps.plugin.eventBus.on("open-asset", (event) => {
         const settings = deps.settings();
         const gesture = gestureOf(event.detail.event);
-        debug("open-asset", {path: event.detail.path, gesture, takeover: settings.takeover});
-        if (settings.takeover === "none") {
+        // 移动端只有单击这一种手势：桌面端存下的 Alt/Ctrl 单击不该让移动端点了没反应
+        const takeover = isMobileFrontend() && settings.takeover !== "none" ? "click" : settings.takeover;
+        debug("open-asset", {path: event.detail.path, gesture, takeover});
+        if (takeover === "none") {
             return;
         }
         const link = candidate(event.detail.path, settings);
-        if (!link || gesture !== settings.takeover) {
+        if (!link || gesture !== takeover) {
             debug("open-asset: left to SiYuan", {link, reason: link ? "gesture" : "not whitelisted"});
             return;
         }

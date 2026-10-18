@@ -12,7 +12,7 @@
  * 图标按钮只留 aria-label 给读屏，不挂思源的 .ariaLabel：那一栏紧贴正文，
  * 悬浮提示弹出时会压住第一行代码，得不偿失。
  */
-import {showMessage, type Custom, type Plugin} from "siyuan";
+import {showMessage, type Plugin} from "siyuan";
 import type {EditorView} from "@codemirror/view";
 import {readAssetText, resolveAsset, resolveWorkspaceFile, writeAssetText, type IAssetRef, type IAssetText} from "./asset";
 import {
@@ -84,10 +84,34 @@ export const focusedTab = (): IEditorTab | undefined => {
 
 const megabytes = (bytes: number): string => `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 
-export function createView(custom: Custom, t: T, settings: () => Settings): IEditorTab {
-    const link = String(custom.data?.link ?? "");
+/**
+ * 视图的宿主容器。
+ *
+ * 桌面端是思源的自定义页签（`Custom` 带着 element 与 data），移动端是
+ * 全屏对话框里的一个 div——移动端的自定义页签 API 是空实现，见 mobile.ts。
+ * 视图本身不关心自己挂在哪，只认这三个字段。
+ */
+export interface IViewHost {
+    /** 视图挂到这里。页签给的 Custom.element 只是 Element，对话框给的 div 是 HTMLElement。 */
+    element: Element;
+    /** 页签或对话框带过来的数据：`{link}`，`.sy` 预览另有 `{sy: true}`。 */
+    data?: Record<string, unknown>;
+    /**
+     * 标题。移动端没有页签头，操作条上要显示文件名；页签里由页签头负责，不传。
+     */
+    title?: string;
+    /**
+     * 关闭动作。移动端传，页签里不传：页签有自己的关闭控件与未保存确认（见 close-guard.ts）。
+     */
+    onClose?: () => void;
+}
+
+export function createView(host: IViewHost, t: T, settings: () => Settings): IEditorTab {
+    const link = String(host.data?.link ?? "");
     // .sy 文档预览：只读到底，不提供编辑、保存与暂存
-    const syDoc = custom.data?.sy === true;
+    const syDoc = host.data?.sy === true;
+    // 移动端的操作条要多两样东西：文件名与关闭按钮
+    const mobile = host.onClose !== undefined;
 
     const root = document.createElement("div");
     root.className = "editor-siyuan";
@@ -95,7 +119,9 @@ export function createView(custom: Custom, t: T, settings: () => Settings): IEdi
     // 宿主的全局 click（boot/globalEvent/click.ts 的 globalClickHideMenu）会在任何 click
     // 之后关掉共享菜单，只有被点元素在菜单内、或带这个标记时才放过——否则点一下按钮，
     // 菜单刚弹出来就被这次点击自己关掉了。思源自己的 ⋮ 按钮也是这么标的（layout/dock/Inbox.ts）。
-    root.innerHTML = `<div class="editor-siyuan__action">
+    root.innerHTML = `<div class="editor-siyuan__action">${mobile ? `
+<span class="editor-siyuan__icon" data-type="close"><svg><use xlink:href="#iconClose"></use></svg></span>
+<span class="editor-siyuan__title"></span>` : ""}
 <span class="editor-siyuan__language" data-menu="true"></span>
 <span class="fn__flex-1"></span>
 <span class="editor-siyuan__icon" data-type="search"><svg><use xlink:href="#iconSearch"></use></svg></span>
@@ -113,6 +139,11 @@ export function createView(custom: Custom, t: T, settings: () => Settings): IEdi
     const saveIcon = root.querySelector<HTMLElement>('[data-type="save"]')!;
     const readonlyIcon = root.querySelector<HTMLElement>('[data-type="readonly"]')!;
     const moreIcon = root.querySelector<HTMLElement>('[data-type="more"]')!;
+    const closeIcon = root.querySelector<HTMLElement>('[data-type="close"]');
+    const titleElement = root.querySelector<HTMLElement>(".editor-siyuan__title");
+    if (titleElement) {
+        titleElement.textContent = host.title ?? "";
+    }
 
     // .sy 预览不提供切回编辑与保存这两个入口，用思源自己的 fn__none 隐藏
     if (syDoc) {
@@ -156,6 +187,7 @@ export function createView(custom: Custom, t: T, settings: () => Settings): IEdi
     };
 
     const syncIcons = (): void => {
+        closeIcon?.setAttribute("aria-label", t("close"));
         searchIcon.setAttribute("aria-label", t("find"));
         saveIcon.setAttribute("aria-label", dirty ? t("saveDirty") : t("save"));
         saveIcon.classList.toggle("editor-siyuan__icon--dirty", dirty);
@@ -286,9 +318,11 @@ export function createView(custom: Custom, t: T, settings: () => Settings): IEdi
         const rect = moreIcon.getBoundingClientRect();
         openMoreMenu({view: editor, language, link, readOnly, t}, rect.right, rect.bottom);
     });
+    // 移动端的关闭按钮：确认与销毁都由宿主负责，视图只把点击交出去
+    closeIcon?.addEventListener("click", () => host.onClose?.());
 
     registry.add(tab);
-    custom.element.append(root);
+    host.element.append(root);
     syncIcons();
     placeholder(t("loading"));
 
@@ -352,7 +386,9 @@ export function createView(custom: Custom, t: T, settings: () => Settings): IEdi
             ligatures: ligaturesWanted(),
             tabSpaces: config().editor.codeTabSpaces,
             t,
-            onContextMenu: (event) => {
+            // 移动端不拦 contextmenu：长按该交给系统那套文本菜单（剪切 / 复制 / 粘贴 / 全选），
+            // 自制菜单在触屏上既和它重复，还会抢掉系统的选择手势。桌面端照旧用自己的右键菜单。
+            onContextMenu: mobile ? undefined : (event) => {
                 if (editor) {
                     openEditorMenu({view: editor, t, readOnly, onSave: () => void save()}, event.clientX, event.clientY);
                 }
@@ -369,7 +405,11 @@ export function createView(custom: Custom, t: T, settings: () => Settings): IEdi
             restoreCursor(editor, cursor);
         }
         syncIcons();
-        editor.focus();
+        // 移动端不自动聚焦：焦点一落到正文上就会弹起软键盘，盖掉半屏内容，
+        // 而用户这一下点击本身只是想看一眼文件。桌面端仍然聚焦，省一次点击。
+        if (!mobile) {
+            editor.focus();
+        }
         debug("editor ready", {
             link: ref.link,
             language,

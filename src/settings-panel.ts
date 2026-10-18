@@ -11,6 +11,7 @@
 import {Setting} from "siyuan";
 import {DEFAULT_EXTENSIONS, type Settings, type TFollow, type TLineNumbers, type TOpenMode, type TTakeover} from "./config";
 import {rememberedCount} from "./config";
+import {isMobileFrontend} from "./frontend";
 import type {T} from "./i18n";
 
 export interface ISettingsPanelOptions {
@@ -63,19 +64,23 @@ export function openSettingsPanel(options: ISettingsPanelOptions): void {
         }),
     });
 
-    setting.addItem({
-        title: t("takeoverGesture"),
-        description: t("takeoverGestureTip"),
-        actionElement: selectControl(draft.takeover === "none" ? "none" : draft.takeover, [
-            {value: "click", label: t("gestureClick")},
-            {value: "ctrlClick", label: t("gestureCtrlClick")},
-            {value: "altClick", label: t("gestureAltClick")},
-            {value: "shiftClick", label: t("gestureShiftClick")},
-            {value: "none", label: t("gestureNone")},
-        ], (value) => {
-            draft.takeover = value as TTakeover;
-        }),
-    });
+    // 移动端没有修饰键，能谈的只有单击这一种手势，这一项不显示；
+    // 桌面端存下的 Alt/Ctrl 单击在移动端也一律按单击处理（见 open.ts）
+    if (!isMobileFrontend()) {
+        setting.addItem({
+            title: t("takeoverGesture"),
+            description: t("takeoverGestureTip"),
+            actionElement: selectControl(draft.takeover === "none" ? "none" : draft.takeover, [
+                {value: "click", label: t("gestureClick")},
+                {value: "ctrlClick", label: t("gestureCtrlClick")},
+                {value: "altClick", label: t("gestureAltClick")},
+                {value: "shiftClick", label: t("gestureShiftClick")},
+                {value: "none", label: t("gestureNone")},
+            ], (value) => {
+                draft.takeover = value as TTakeover;
+            }),
+        });
+    }
 
     setting.addItem({
         title: t("previewSy"),
@@ -123,10 +128,13 @@ export function openSettingsPanel(options: ISettingsPanelOptions): void {
     setting.addItem({
         title: t("maxSize"),
         description: t("maxSizeTip"),
+        // 输入框外面包一层 div：宿主只给 INPUT/TEXTAREA 类型的控件挂 bindInput，而 bindInput 会
+        // focus——数字输入框因此在移动端弹出软键盘。包一层后宿主就管不到它了。桌面端只是这一项
+        // 不再自动聚焦，而它本来也不靠回车保存。
         createActionElement: () => {
             const input = document.createElement("input");
             input.type = "number";
-            input.className = "b3-text-field fn__flex-center";
+            input.className = "b3-text-field";
             input.min = "0.1";
             input.step = "0.1";
             input.value = String(draft.maxSizeMB);
@@ -136,7 +144,10 @@ export function openSettingsPanel(options: ISettingsPanelOptions): void {
                     draft.maxSizeMB = value;
                 }
             });
-            return input;
+            const wrapper = document.createElement("div");
+            wrapper.className = "editor-siyuan-settings__number";
+            wrapper.append(input);
+            return wrapper;
         },
     });
 

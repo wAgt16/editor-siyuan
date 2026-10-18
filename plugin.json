@@ -2,16 +2,13 @@
   "name": "editor-siyuan",
   "author": "wmy2981",
   "url": "https://github.com/wmy2981/editor-siyuan",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "minAppVersion": "3.8.3",
   "backends": [
-    "windows",
-    "linux",
-    "darwin"
+    "all"
   ],
   "frontends": [
-    "desktop",
-    "desktop-window"
+    "all"
   ],
   "disabledInPublish": true,
   "displayName": {
