@@ -403,7 +403,11 @@ export function createView(host: IViewHost, t: T, settings: () => Settings): IEd
             restoreCursor(editor, cursor);
         }
         syncIcons();
-        editor.focus();
+        // 移动端不自动聚焦：焦点一落到正文上就会弹起软键盘，盖掉半屏内容，
+        // 而用户这一下点击本身只是想看一眼文件。桌面端仍然聚焦，省一次点击。
+        if (!mobile) {
+            editor.focus();
+        }
         debug("editor ready", {
             link: ref.link,
             language,
