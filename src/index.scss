@@ -277,6 +277,12 @@
   }
 }
 
+// 数字输入框外面那层：宿主只给 INPUT/TEXTAREA 挂 bindInput（会 focus），包一层就不会在移动端
+// 自动聚焦、弹键盘。宿主给这层加的是 fn__size200（200px），里面那个输入框撑满它。
+.editor-siyuan-settings__number .b3-text-field {
+  width: 100%;
+}
+
 // ---- 移动端：全屏对话框 ----
 // 移动端没有自定义页签，同一个视图挂在 Dialog 里（见 mobile.ts）。容器由思源给，
 // 这里只把边框、圆角、最大宽度与留白收掉，让编辑器真正铺满一屏。

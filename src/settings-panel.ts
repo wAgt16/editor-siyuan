@@ -128,10 +128,13 @@ export function openSettingsPanel(options: ISettingsPanelOptions): void {
     setting.addItem({
         title: t("maxSize"),
         description: t("maxSizeTip"),
+        // 输入框外面包一层 div：宿主只给 INPUT/TEXTAREA 类型的控件挂 bindInput，而 bindInput 会
+        // focus——数字输入框因此在移动端弹出软键盘。包一层后宿主就管不到它了。桌面端只是这一项
+        // 不再自动聚焦，而它本来也不靠回车保存。
         createActionElement: () => {
             const input = document.createElement("input");
             input.type = "number";
-            input.className = "b3-text-field fn__flex-center";
+            input.className = "b3-text-field";
             input.min = "0.1";
             input.step = "0.1";
             input.value = String(draft.maxSizeMB);
@@ -141,7 +144,10 @@ export function openSettingsPanel(options: ISettingsPanelOptions): void {
                     draft.maxSizeMB = value;
                 }
             });
-            return input;
+            const wrapper = document.createElement("div");
+            wrapper.className = "editor-siyuan-settings__number";
+            wrapper.append(input);
+            return wrapper;
         },
     });
 
