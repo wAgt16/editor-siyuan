@@ -386,7 +386,9 @@ export function createView(host: IViewHost, t: T, settings: () => Settings): IEd
             ligatures: ligaturesWanted(),
             tabSpaces: config().editor.codeTabSpaces,
             t,
-            onContextMenu: (event) => {
+            // 移动端不拦 contextmenu：长按该交给系统那套文本菜单（剪切 / 复制 / 粘贴 / 全选），
+            // 自制菜单在触屏上既和它重复，还会抢掉系统的选择手势。桌面端照旧用自己的右键菜单。
+            onContextMenu: mobile ? undefined : (event) => {
                 if (editor) {
                     openEditorMenu({view: editor, t, readOnly, onSave: () => void save()}, event.clientX, event.clientY);
                 }
