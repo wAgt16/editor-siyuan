@@ -9,7 +9,11 @@
     "build": "vite build && node scripts/build-package.mjs",
     "icon": "node scripts/render-icon.mjs && node scripts/render-preview.mjs",
     "preview": "node scripts/render-preview.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "typecheck:tests": "tsc -p tests/tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "keywords": [
     "siyuan",
@@ -30,12 +34,15 @@
     "uglify-js": "^3.19.3"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.12",
     "archiver": "^7.0.1",
+    "jsdom": "^27.4.0",
     "playwright": "^1.63.0",
     "sass-embedded": "^1.104.1",
     "sharp": "^0.35.5",
     "siyuan": "^1.2.8",
     "typescript": "^5.9.3",
-    "vite": "^7.1.7"
+    "vite": "^7.1.7",
+    "vitest": "^4.1.12"
   }
 }
