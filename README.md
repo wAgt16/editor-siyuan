@@ -21,7 +21,7 @@ Only files in the workspace's `assets/` folder are handled. Links to absolute pa
 ## Requirements
 
 - SiYuan 3.8.3 or later.
-- Desktop only. SiYuan's plugin API for custom tabs is a no-op on mobile, and the settings here are declared for Windows, macOS and Linux.
+- Desktop, and Docker deployments opened in a desktop browser. SiYuan's custom tab API is a no-op on mobile, so mobile is not supported yet; `plugin.json` declares Windows, macOS, Linux and Docker, with the desktop and browser-desktop frontends.
 - The administrator role. Locating and writing an asset uses `/api/asset/resolveAssetPath`, `/api/asset/statAsset` and `/api/file/putFile`, which SiYuan restricts to administrators. A single-user local workspace is always an administrator.
 
 ## Install
@@ -100,6 +100,8 @@ These are consequences of the plugin API, not oversights.
 - **Line numbers are CodeMirror's gutter**, restyled to SiYuan's metrics and painted with the editor background. SiYuan's own code block builds its line-number column by hand, so the two are not pixel-identical.
 - **Formatting and minification run on the main thread.** prettier and uglify-js compute in the renderer, so a file of a few MB stalls the UI for a few seconds; an edit made while they run causes the result to be discarded. All three libraries are bundled into `index.js`, which grows the package by roughly 700 KB.
 - **No detection of outside changes.** If another program edits the file while its tab is open, the change is not noticed until the tab is reopened.
+- **In a browser, `Ctrl+W` closes the browser's own tab**, which the plugin cannot intercept; all it can do is let `beforeunload` raise the browser's generic confirmation. On Docker and the web frontend, neither the close confirmation nor the stash runs on that path.
+- **The context menu's Paste entry may be greyed out in a browser.** Browsers forbid scripted pasting, leaving only the async clipboard, which needs HTTPS or localhost; without it the entry is greyed out. Pressing `Ctrl+V` in the document itself is unaffected.
 
 ## Development
 

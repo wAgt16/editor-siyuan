@@ -13,8 +13,9 @@
  */
 import {getActiveTab, type Custom, type Plugin} from "siyuan";
 import {config} from "./util";
-import {tabFor, type IEditorTab} from "./view";
+import {allTabs, tabFor, type IEditorTab} from "./view";
 import {openConfirmDialog} from "./dialog";
+import {isBrowserFrontend} from "./frontend";
 import type {Settings} from "./config";
 import type {T} from "./i18n";
 
@@ -140,7 +141,29 @@ function closeTabById(plugin: Plugin, tabId: string): void {
     }
 }
 
+/**
+ * 浏览器前端的「关掉整个页面」。
+ *
+ * 桌面端关窗口时宿主的页签生命周期回调还会跑，未保存的正文来得及写进暂存；
+ * 浏览器里 Ctrl+W 直接把标签页关掉，什么回调都没有。浏览器只允许用
+ * beforeunload 弹它自己那个通用确认框，文案改不了，但这已经是唯一能拦住它的地方。
+ */
+function guardBeforeUnload(): void {
+    window.addEventListener("beforeunload", (event) => {
+        if (!allTabs().some((tab) => tab.isDirty())) {
+            return;
+        }
+        // 现代浏览器只认 preventDefault；更老的实现要求 returnValue 非空才弹框
+        event.preventDefault();
+        event.returnValue = "";
+    });
+}
+
 export function registerCloseGuard(deps: ICloseDeps): void {
+    if (isBrowserFrontend()) {
+        guardBeforeUnload();
+    }
+
     const guard = (view: IEditorTab, proceed: () => void): void => {
         if (!view.isDirty() || !deps.settings().confirmOnClose) {
             proceed();

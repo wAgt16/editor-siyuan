@@ -7,11 +7,13 @@
   "backends": [
     "windows",
     "linux",
-    "darwin"
+    "darwin",
+    "docker"
   ],
   "frontends": [
     "desktop",
-    "desktop-window"
+    "desktop-window",
+    "browser-desktop"
   ],
   "disabledInPublish": true,
   "displayName": {

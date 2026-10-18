@@ -21,6 +21,7 @@ import {redo, redoDepth, selectAll, undo, undoDepth} from "@codemirror/commands"
 import {openSearchPanel} from "@codemirror/search";
 import type {EditorView} from "@codemirror/view";
 import {debug} from "./debug";
+import {isBrowserFrontend} from "./frontend";
 import {ICON_SAVE} from "./icons";
 import {config} from "./util";
 import type {T} from "./i18n";
@@ -61,6 +62,16 @@ const paste = (view: EditorView, t: T): void => {
     });
 };
 
+/**
+ * 菜单里的「粘贴」在本环境能不能用。
+ *
+ * 桌面端 `execCommand("paste")` 可用（Electron 的渲染进程放行了剪贴板读取）；
+ * 浏览器里这条命令一律被安全策略拒掉，只剩异步剪贴板可走，而它只在安全上下文
+ * （HTTPS 或 localhost）中存在。两条路都没有时直接置灰，好过点了才报错。
+ */
+const canPaste = (): boolean =>
+    !isBrowserFrontend() || typeof navigator.clipboard?.readText === "function";
+
 export function openEditorMenu(deps: IMenuDeps, x: number, y: number): void {
     const {view, t, readOnly} = deps;
     // 重做的按键跟随 CodeMirror 的 historyKeymap：mac 是 ⇧⌘Z，其他平台是 Ctrl+Y
@@ -77,7 +88,14 @@ export function openEditorMenu(deps: IMenuDeps, x: number, y: number): void {
         menu.addItem({id: "copy", icon: "iconCopy", label: t("copy"), accelerator: "⌘C", click: () => clipboard(view, "copy")});
     }
     if (!readOnly) {
-        menu.addItem({id: "paste", icon: "iconPaste", label: t("paste"), accelerator: "⌘V", click: () => paste(view, t)});
+        menu.addItem({
+            id: "paste",
+            icon: "iconPaste",
+            label: t("paste"),
+            accelerator: "⌘V",
+            disabled: !canPaste(),
+            click: () => paste(view, t),
+        });
     }
     menu.addItem({
         id: "selectAll",
