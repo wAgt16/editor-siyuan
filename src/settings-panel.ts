@@ -11,6 +11,7 @@
 import {Setting} from "siyuan";
 import {DEFAULT_EXTENSIONS, type Settings, type TFollow, type TLineNumbers, type TOpenMode, type TTakeover} from "./config";
 import {rememberedCount} from "./config";
+import {isMobileFrontend} from "./frontend";
 import type {T} from "./i18n";
 
 export interface ISettingsPanelOptions {
@@ -63,19 +64,23 @@ export function openSettingsPanel(options: ISettingsPanelOptions): void {
         }),
     });
 
-    setting.addItem({
-        title: t("takeoverGesture"),
-        description: t("takeoverGestureTip"),
-        actionElement: selectControl(draft.takeover === "none" ? "none" : draft.takeover, [
-            {value: "click", label: t("gestureClick")},
-            {value: "ctrlClick", label: t("gestureCtrlClick")},
-            {value: "altClick", label: t("gestureAltClick")},
-            {value: "shiftClick", label: t("gestureShiftClick")},
-            {value: "none", label: t("gestureNone")},
-        ], (value) => {
-            draft.takeover = value as TTakeover;
-        }),
-    });
+    // 移动端没有修饰键，能谈的只有单击这一种手势，这一项不显示；
+    // 桌面端存下的 Alt/Ctrl 单击在移动端也一律按单击处理（见 open.ts）
+    if (!isMobileFrontend()) {
+        setting.addItem({
+            title: t("takeoverGesture"),
+            description: t("takeoverGestureTip"),
+            actionElement: selectControl(draft.takeover === "none" ? "none" : draft.takeover, [
+                {value: "click", label: t("gestureClick")},
+                {value: "ctrlClick", label: t("gestureCtrlClick")},
+                {value: "altClick", label: t("gestureAltClick")},
+                {value: "shiftClick", label: t("gestureShiftClick")},
+                {value: "none", label: t("gestureNone")},
+            ], (value) => {
+                draft.takeover = value as TTakeover;
+            }),
+        });
+    }
 
     setting.addItem({
         title: t("previewSy"),

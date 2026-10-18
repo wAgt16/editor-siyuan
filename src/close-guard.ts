@@ -15,7 +15,7 @@ import {getActiveTab, type Custom, type Plugin} from "siyuan";
 import {config} from "./util";
 import {allTabs, tabFor, type IEditorTab} from "./view";
 import {openConfirmDialog} from "./dialog";
-import {isBrowserFrontend} from "./frontend";
+import {isBrowserFrontend, isMobileFrontend} from "./frontend";
 import type {Settings} from "./config";
 import type {T} from "./i18n";
 
@@ -159,46 +159,64 @@ function guardBeforeUnload(): void {
     });
 }
 
+/** 关闭确认要问的对象：页签视图与移动端对话框视图都满足它。 */
+export interface IClosable {
+    readonly link: string;
+    isDirty(): boolean;
+    save(): Promise<boolean>;
+    discard(): void;
+}
+
+/**
+ * 关闭前的确认。
+ *
+ * 页签的关闭控件（本文件的拦截）与移动端对话框的关闭按钮（mobile.ts）共用这一条：
+ * 有未保存改动且设置里要求确认时先问，用户点「保存」并保存成功、或点「不保存」之后才 proceed。
+ */
+export function confirmClose(view: IClosable, t: T, settings: () => Settings, proceed: () => void): void {
+    if (!view.isDirty() || !settings().confirmOnClose) {
+        proceed();
+        return;
+    }
+    openConfirmDialog({
+        title: t("closeTitle"),
+        text: t("closeBody", {file: view.link.slice("assets/".length)}),
+        cancelLabel: t("cancel"),
+        onCancel: () => {
+            // 取消：关闭动作已经被拦下，什么都不做即可
+        },
+        actions: [
+            {
+                label: t("closeDiscard"),
+                danger: true,
+                onClick: () => {
+                    view.discard();
+                    proceed();
+                },
+            },
+            {
+                label: t("save"),
+                primary: true,
+                onClick: () => {
+                    void view.save().then((ok) => {
+                        if (ok) {
+                            proceed();
+                        }
+                    });
+                },
+            },
+        ],
+    });
+}
+
 export function registerCloseGuard(deps: ICloseDeps): void {
     if (isBrowserFrontend()) {
         guardBeforeUnload();
     }
-
-    const guard = (view: IEditorTab, proceed: () => void): void => {
-        if (!view.isDirty() || !deps.settings().confirmOnClose) {
-            proceed();
-            return;
-        }
-        openConfirmDialog({
-            title: deps.t("closeTitle"),
-            text: deps.t("closeBody", {file: view.link.slice("assets/".length)}),
-            cancelLabel: deps.t("cancel"),
-            onCancel: () => {
-                // 取消：默认行为已经被拦下，什么都不做即可
-            },
-            actions: [
-                {
-                    label: deps.t("closeDiscard"),
-                    danger: true,
-                    onClick: () => {
-                        view.discard();
-                        proceed();
-                    },
-                },
-                {
-                    label: deps.t("save"),
-                    primary: true,
-                    onClick: () => {
-                        void view.save().then((ok) => {
-                            if (ok) {
-                                proceed();
-                            }
-                        });
-                    },
-                },
-            ],
-        });
-    };
+    if (isMobileFrontend()) {
+        // 移动端没有页签，页签的关闭控件、关签快捷键与双击都不存在；关闭走对话框上的按钮
+        return;
+    }
 
     // 页签关闭控件与双击页签：宿主的监听挂在冒泡阶段，捕获阶段必然先到这里
     document.addEventListener("click", (event) => {
@@ -220,7 +238,7 @@ export function registerCloseGuard(deps: ICloseDeps): void {
         }
         event.preventDefault();
         event.stopImmediatePropagation();
-        guard(view, () => closeTabById(deps.plugin, tabId!));
+        confirmClose(view, deps.t, deps.settings, () => closeTabById(deps.plugin, tabId!));
     }, true);
 
     // 关闭快捷键。思源的 keydown 挂在 window 的冒泡阶段，捕获阶段必然先到这里
@@ -246,6 +264,6 @@ export function registerCloseGuard(deps: ICloseDeps): void {
         }
         event.preventDefault();
         event.stopImmediatePropagation();
-        guard(view, () => tab.parent?.removeTab(tab.id));
+        confirmClose(view, deps.t, deps.settings, () => tab.parent?.removeTab(tab.id));
     }, true);
 }

@@ -16,3 +16,11 @@ export const frontend = (): TFrontend => getFrontend();
  * 原生菜单与可拦截的窗口关闭动作。
  */
 export const isBrowserFrontend = (): boolean => frontend().startsWith("browser");
+
+/**
+ * 移动端：手机 App（mobile）与手机浏览器（browser-mobile）。
+ *
+ * 这两者的自定义页签 API 都是空实现（宿主的 addTab / openTab 在移动端构建里
+ * 被编译掉了），编辑器只能挂进对话框。
+ */
+export const isMobileFrontend = (): boolean => frontend().endsWith("mobile");

@@ -62,7 +62,8 @@ export default class EditorPlugin extends Plugin {
         this.addTab({
             type: TAB_TYPE,
             init() {
-                plugin.views.set(this, createView(this, plugin.t, () => plugin.settings));
+                // 页签头自己显示标题，关闭由 close-guard 负责，所以这里只给容器与数据
+                plugin.views.set(this, createView({element: this.element, data: this.data}, plugin.t, () => plugin.settings));
             },
             beforeDestroy() {
                 plugin.views.get(this)?.dispose();
