@@ -45,7 +45,7 @@ const searchField = (view: EditorView): HTMLInputElement =>
     panel(view)!.querySelector<HTMLInputElement>('[main-field="true"]')!;
 
 const replaceField = (view: EditorView): HTMLInputElement =>
-    panel(view)!.querySelector<HTMLInputElement>('[data-type="replace"]')!;
+    panel(view)!.querySelector<HTMLInputElement>('[data-type="replaceText"]')!;
 
 function type(input: HTMLInputElement, value: string): void {
     input.value = value;
@@ -347,9 +347,7 @@ describe("按钮", () => {
         expect(searchPanelOpen(view.state)).toBe(false);
     });
 
-    // 已知缺陷（src 本轮不改）：bind("replace") 用 querySelector('[data-type="replace"]')
-    // 命中的是同名输入框，替换按钮的 click 没有接上，点按钮不会替换。
-    it.fails("替换按钮替换当前命中", () => {
+    it("替换按钮替换当前命中", () => {
         const view = makeEditor("foo");
         openSearchPanel(view);
         type(searchField(view), "foo");
@@ -362,6 +360,16 @@ describe("按钮", () => {
         }));
         panel(view)!.querySelector<HTMLElement>('button[data-type="replace"]')!.click();
         expect(view.state.doc.toString()).toBe("bar");
+    });
+
+    it("点替换输入框本身不会替换", () => {
+        const view = makeEditor("foo");
+        openSearchPanel(view);
+        type(searchField(view), "foo");
+        type(replaceField(view), "bar");
+        view.dispatch({selection: {anchor: 0}});
+        replaceField(view).click();
+        expect(view.state.doc.toString()).toBe("foo");
     });
 
     it("全部替换按钮替换所有命中", () => {
