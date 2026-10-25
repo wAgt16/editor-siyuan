@@ -46,7 +46,7 @@ import {
     type ViewUpdate,
     ViewPlugin,
 } from "@codemirror/view";
-import {defaultKeymap, history, historyKeymap, indentWithTab} from "@codemirror/commands";
+import {defaultKeymap, history, historyKeymap, indentWithTab, redo, redoDepth, undo, undoDepth} from "@codemirror/commands";
 import {searchKeymap} from "@codemirror/search";
 import {indentOnInput, indentUnit} from "@codemirror/language";
 import {normalizeLanguage, PLAIN_TEXT} from "./language";
@@ -336,6 +336,24 @@ export const setEditorLigatures = (view: EditorView, ligatures: boolean): void =
 
 export const setEditorLanguage = (view: EditorView, language: string): void => {
     view.dispatch({effects: setLanguageEffect.of(language)});
+};
+
+/**
+ * 撤销与重做。
+ *
+ * 操作条上的两个按钮与快捷键走同一个实现：撤销栈归 CodeMirror 的 history()，
+ * 深度也由它给，所以按钮的可用状态与 ⌘Z / ⇧⌘Z 永远一致，不会各算一套。
+ */
+export const canUndo = (view: EditorView): boolean => undoDepth(view.state) > 0;
+
+export const canRedo = (view: EditorView): boolean => redoDepth(view.state) > 0;
+
+export const applyUndo = (view: EditorView): void => {
+    undo(view);
+};
+
+export const applyRedo = (view: EditorView): void => {
+    redo(view);
 };
 
 /** 保存/恢复滚动位置与光标。 */

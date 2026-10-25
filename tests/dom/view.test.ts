@@ -20,6 +20,10 @@ import {openEditorMenu} from "../../src/context-menu";
 import {toggleSearchPanel, closeSearch} from "../../src/search";
 import {loadHljs} from "../../src/hljs";
 import {
+    applyRedo,
+    applyUndo,
+    canRedo,
+    canUndo,
     createEditor,
     readCursor,
     restoreCursor,
@@ -53,6 +57,10 @@ vi.mock("../../src/asset", () => ({
     writeAssetText: vi.fn(),
 }));
 vi.mock("../../src/editor", () => ({
+    applyRedo: vi.fn(),
+    applyUndo: vi.fn(),
+    canRedo: vi.fn(),
+    canUndo: vi.fn(),
     createEditor: vi.fn(),
     readCursor: vi.fn(),
     restoreCursor: vi.fn(),
@@ -85,6 +93,8 @@ const t = makeT({
     switchToEdit: "切到编辑",
     switchToPreview: "切到预览",
     more: "更多",
+    undo: "撤销",
+    redo: "重做",
     languageLabel: "语言",
     restoreTitle: "恢复未保存内容",
     restoreBody: "上次关闭时有未保存内容",
@@ -132,6 +142,8 @@ const readonlyIcon = (tab: IEditorTab): HTMLElement =>
     tab.element.querySelector<HTMLElement>('[data-type="readonly"]')!;
 const searchIcon = (tab: IEditorTab): HTMLElement => tab.element.querySelector<HTMLElement>('[data-type="search"]')!;
 const moreIcon = (tab: IEditorTab): HTMLElement => tab.element.querySelector<HTMLElement>('[data-type="more"]')!;
+const undoIcon = (tab: IEditorTab): HTMLElement => tab.element.querySelector<HTMLElement>('[data-type="undo"]')!;
+const redoIcon = (tab: IEditorTab): HTMLElement => tab.element.querySelector<HTMLElement>('[data-type="redo"]')!;
 const languageLabel = (tab: IEditorTab): HTMLElement =>
     tab.element.querySelector<HTMLElement>(".editor-siyuan__language")!;
 
@@ -145,6 +157,8 @@ beforeEach(async () => {
     vi.mocked(writeAssetText).mockResolvedValue(undefined);
     vi.mocked(loadHljs).mockResolvedValue(true);
     vi.mocked(readCursor).mockReturnValue({anchor: 3, scrollTop: 4});
+    vi.mocked(canUndo).mockReturnValue(false);
+    vi.mocked(canRedo).mockReturnValue(false);
     vi.mocked(createEditor).mockImplementation((_parent, options) => {
         lastOptions = options;
         editor = fakeEditor(options.doc);
@@ -634,5 +648,58 @@ describe("设置联动", () => {
         }}});
         plugin.eventBus.emit("ws-main", {cmd: "setConf", data: {}});
         expect(setEditorLineNumbers).not.toHaveBeenCalled();
+    });
+});
+
+describe("撤销与重做", () => {
+    it("编辑模式下两个按钮可见", async () => {
+        const tab = await openReady();
+        expect(undoIcon(tab).classList.contains("fn__none")).toBe(false);
+        expect(redoIcon(tab).classList.contains("fn__none")).toBe(false);
+        expect(undoIcon(tab).getAttribute("aria-label")).toBe("撤销");
+        expect(redoIcon(tab).getAttribute("aria-label")).toBe("重做");
+    });
+
+    it("预览模式下整对隐藏", async () => {
+        settings = makeSettings({openMode: "preview"});
+        const tab = await openReady();
+        expect(undoIcon(tab).classList.contains("fn__none")).toBe(true);
+        expect(redoIcon(tab).classList.contains("fn__none")).toBe(true);
+    });
+
+    it("切回编辑后重新出现", async () => {
+        settings = makeSettings({openMode: "preview"});
+        const tab = await openReady();
+        readonlyIcon(tab).click();
+        expect(undoIcon(tab).classList.contains("fn__none")).toBe(false);
+        expect(redoIcon(tab).classList.contains("fn__none")).toBe(false);
+    });
+
+    it("撤销栈为空时置灰且点了没反应", async () => {
+        const tab = await openReady();
+        expect(undoIcon(tab).classList.contains("editor-siyuan__icon--disabled")).toBe(true);
+        expect(undoIcon(tab).getAttribute("aria-disabled")).toBe("true");
+        undoIcon(tab).click();
+        redoIcon(tab).click();
+        expect(applyUndo).not.toHaveBeenCalled();
+        expect(applyRedo).not.toHaveBeenCalled();
+    });
+
+    it("有可撤销的内容时按钮可点，点了走 CodeMirror 的撤销", async () => {
+        vi.mocked(canUndo).mockReturnValue(true);
+        const tab = await openReady();
+        expect(undoIcon(tab).classList.contains("editor-siyuan__icon--disabled")).toBe(false);
+        undoIcon(tab).click();
+        expect(applyUndo).toHaveBeenCalledWith(editor);
+    });
+
+    it("正文改动后按新的栈深重算按钮状态", async () => {
+        const tab = await openReady();
+        expect(redoIcon(tab).classList.contains("editor-siyuan__icon--disabled")).toBe(true);
+        vi.mocked(canRedo).mockReturnValue(true);
+        lastOptions.onChange();
+        expect(redoIcon(tab).classList.contains("editor-siyuan__icon--disabled")).toBe(false);
+        redoIcon(tab).click();
+        expect(applyRedo).toHaveBeenCalledWith(editor);
     });
 });

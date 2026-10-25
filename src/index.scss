@@ -85,6 +85,13 @@
     &--dirty {
       color: var(--b3-theme-primary);
     }
+
+    // 撤销栈 / 重做栈空时置灰。仍然占位，操作条不会因为按钮变灰而左右跳动。
+    &--disabled {
+      color: var(--b3-theme-on-surface-light);
+      cursor: default;
+      pointer-events: none;
+    }
   }
 
   &__body {

@@ -8,7 +8,7 @@
  * / --b3-font-size-editor / --b3-border-color / --b3-list-hover）。
  * 语法配色仍然复用用户选定的那份 hljs 主题样式表，见 theme.ts。
  *
- * 顶部一条操作条：左侧是可点的语言标签，右侧依次是查找、只读切换与保存。
+ * 顶部一条操作条：左侧是可点的语言标签与撤销 / 重做，右侧依次是查找、只读切换与保存。
  * 图标按钮只留 aria-label 给读屏，不挂思源的 .ariaLabel：那一栏紧贴正文，
  * 悬浮提示弹出时会压住第一行代码，得不偿失。
  */
@@ -16,6 +16,10 @@ import {showMessage, type Plugin} from "siyuan";
 import type {EditorView} from "@codemirror/view";
 import {readAssetText, resolveAsset, resolveWorkspaceFile, writeAssetText, type IAssetRef, type IAssetText} from "./asset";
 import {
+    applyRedo,
+    applyUndo,
+    canRedo,
+    canUndo,
     createEditor,
     readCursor,
     restoreCursor,
@@ -123,6 +127,8 @@ export function createView(host: IViewHost, t: T, settings: () => Settings): IEd
 <span class="editor-siyuan__icon" data-type="close"><svg><use xlink:href="#iconClose"></use></svg></span>
 <span class="editor-siyuan__title"></span>` : ""}
 <span class="editor-siyuan__language" data-menu="true"></span>
+<span class="editor-siyuan__icon" data-type="undo"><svg><use xlink:href="#iconUndo"></use></svg></span>
+<span class="editor-siyuan__icon" data-type="redo"><svg><use xlink:href="#iconRedo"></use></svg></span>
 <span class="fn__flex-1"></span>
 <span class="editor-siyuan__icon" data-type="search"><svg><use xlink:href="#iconSearch"></use></svg></span>
 <span class="editor-siyuan__icon" data-type="readonly"><svg><use xlink:href="#iconEye"></use></svg></span>
@@ -135,6 +141,8 @@ export function createView(host: IViewHost, t: T, settings: () => Settings): IEd
 
     const mount = root.querySelector<HTMLElement>(".editor-siyuan__mount")!;
     const languageLabel = root.querySelector<HTMLElement>(".editor-siyuan__language")!;
+    const undoIcon = root.querySelector<HTMLElement>('[data-type="undo"]')!;
+    const redoIcon = root.querySelector<HTMLElement>('[data-type="redo"]')!;
     const searchIcon = root.querySelector<HTMLElement>('[data-type="search"]')!;
     const saveIcon = root.querySelector<HTMLElement>('[data-type="save"]')!;
     const readonlyIcon = root.querySelector<HTMLElement>('[data-type="readonly"]')!;
@@ -186,9 +194,30 @@ export function createView(host: IViewHost, t: T, settings: () => Settings): IEd
             (preference === "auto" && config().editor.codeLigatures);
     };
 
+    /**
+     * 撤销 / 重做按钮的状态。
+     *
+     * 预览（只读）模式下整对隐藏——那时正文改不动，撤销栈也没有意义；
+     * 编辑模式下按 CodeMirror 的撤销栈深度置灰，与 ⌘Z / ⇧⌘Z 的可用性同源。
+     * 每次改动都要重算，所以这里只碰这两个按钮，不重写整排图标。
+     */
+    const syncHistory = (): void => {
+        const buttons: Array<[HTMLElement, boolean]> = [
+            [undoIcon, editor !== undefined && canUndo(editor)],
+            [redoIcon, editor !== undefined && canRedo(editor)],
+        ];
+        for (const [icon, available] of buttons) {
+            icon.classList.toggle("fn__none", readOnly);
+            icon.classList.toggle("editor-siyuan__icon--disabled", !available);
+            icon.setAttribute("aria-disabled", String(!available));
+        }
+    };
+
     const syncIcons = (): void => {
         closeIcon?.setAttribute("aria-label", t("close"));
         searchIcon.setAttribute("aria-label", t("find"));
+        undoIcon.setAttribute("aria-label", t("undo"));
+        redoIcon.setAttribute("aria-label", t("redo"));
         saveIcon.setAttribute("aria-label", dirty ? t("saveDirty") : t("save"));
         saveIcon.classList.toggle("editor-siyuan__icon--dirty", dirty);
         readonlyIcon.setAttribute("aria-label", readOnly ? t("switchToEdit") : t("switchToPreview"));
@@ -197,6 +226,7 @@ export function createView(host: IViewHost, t: T, settings: () => Settings): IEd
         // 空标签会被思源自己的 CSS 补上 "language"，加载完成前保持空
         languageLabel.textContent = editor ? language : "";
         languageLabel.setAttribute("aria-label", t("languageLabel"));
+        syncHistory();
     };
 
     const save = async (): Promise<boolean> => {
@@ -284,6 +314,16 @@ export function createView(host: IViewHost, t: T, settings: () => Settings): IEd
     searchIcon.addEventListener("click", () => {
         if (editor) {
             toggleSearchPanel(editor);
+        }
+    });
+    undoIcon.addEventListener("click", () => {
+        if (editor && !readOnly && canUndo(editor)) {
+            applyUndo(editor);
+        }
+    });
+    redoIcon.addEventListener("click", () => {
+        if (editor && !readOnly && canRedo(editor)) {
+            applyRedo(editor);
         }
     });
     // 右键＝只收起：面板占着正文上方一行，收起来要能一步到位
@@ -397,7 +437,10 @@ export function createView(host: IViewHost, t: T, settings: () => Settings): IEd
                 if (!dirty) {
                     dirty = true;
                     syncIcons();
+                    return;
                 }
+                // 撤销栈深度每次改动都可能变，但那几项图标不必因此重写
+                syncHistory();
             },
         });
         const cursor = settings().restoreCursor ? rememberedCursor(ref.link) : undefined;
