@@ -86,6 +86,11 @@
       color: var(--b3-theme-primary);
     }
 
+    // 状态按钮（换行）：开启时蓝，关闭时保持普通灰
+    &--active {
+      color: var(--b3-theme-primary);
+    }
+
     // 撤销栈 / 重做栈空时置灰。仍然占位，操作条不会因为按钮变灰而左右跳动。
     &--disabled {
       color: var(--b3-theme-on-surface-light);

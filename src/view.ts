@@ -8,7 +8,7 @@
  * / --b3-font-size-editor / --b3-border-color / --b3-list-hover）。
  * 语法配色仍然复用用户选定的那份 hljs 主题样式表，见 theme.ts。
  *
- * 顶部一条操作条：左侧是可点的语言标签与撤销 / 重做，右侧依次是查找、只读切换与保存。
+ * 顶部一条操作条：左侧是可点的语言标签、撤销 / 重做与换行开关，右侧依次是查找、只读切换与保存。
  * 图标按钮只留 aria-label 给读屏，不挂思源的 .ariaLabel：那一栏紧贴正文，
  * 悬浮提示弹出时会压住第一行代码，得不偿失。
  */
@@ -47,7 +47,7 @@ import {openLanguageMenu} from "./language-menu";
 import {openMoreMenu} from "./more-menu";
 import {openConfirmDialog} from "./dialog";
 import {openEditorMenu} from "./context-menu";
-import {ICON_SAVE} from "./icons";
+import {ICON_SAVE, ICON_WRAP} from "./icons";
 import {config, escapeHtml} from "./util";
 import type {T} from "./i18n";
 
@@ -129,6 +129,7 @@ export function createView(host: IViewHost, t: T, settings: () => Settings): IEd
 <span class="editor-siyuan__language" data-menu="true"></span>
 <span class="editor-siyuan__icon" data-type="undo"><svg><use xlink:href="#iconUndo"></use></svg></span>
 <span class="editor-siyuan__icon" data-type="redo"><svg><use xlink:href="#iconRedo"></use></svg></span>
+<span class="editor-siyuan__icon" data-type="wrap"><svg><use xlink:href="#${ICON_WRAP}"></use></svg></span>
 <span class="fn__flex-1"></span>
 <span class="editor-siyuan__icon" data-type="search"><svg><use xlink:href="#iconSearch"></use></svg></span>
 <span class="editor-siyuan__icon" data-type="readonly"><svg><use xlink:href="#iconEye"></use></svg></span>
@@ -143,6 +144,7 @@ export function createView(host: IViewHost, t: T, settings: () => Settings): IEd
     const languageLabel = root.querySelector<HTMLElement>(".editor-siyuan__language")!;
     const undoIcon = root.querySelector<HTMLElement>('[data-type="undo"]')!;
     const redoIcon = root.querySelector<HTMLElement>('[data-type="redo"]')!;
+    const wrapIcon = root.querySelector<HTMLElement>('[data-type="wrap"]')!;
     const searchIcon = root.querySelector<HTMLElement>('[data-type="search"]')!;
     const saveIcon = root.querySelector<HTMLElement>('[data-type="save"]')!;
     const readonlyIcon = root.querySelector<HTMLElement>('[data-type="readonly"]')!;
@@ -164,6 +166,8 @@ export function createView(host: IViewHost, t: T, settings: () => Settings): IEd
     let dirty = false;
     // 初始模式取自设置；之后由操作条上的按钮在这个页签内切换，不回写设置
     let readOnly = syDoc || settings().openMode === "preview";
+    // 换行按钮只在本次打开内覆盖设置，关掉页签即恢复到设置里的默认值
+    let wrapOverride: boolean | undefined;
     let language = PLAIN_TEXT;
     let eol: "\n" | "\r\n" = "\n";
     let bom = false;
@@ -186,6 +190,9 @@ export function createView(host: IViewHost, t: T, settings: () => Settings): IEd
         return preference === "on" ||
             (preference === "auto" && config().editor.codeLineWrap);
     };
+
+    /** 实际生效的换行状态：操作条上手动切过就按手动那次，否则按设置。 */
+    const wrapOn = (): boolean => wrapOverride ?? lineWrapWanted();
 
     /** 连字是否生效：auto 跟随思源的 editor.codeLigatures。 */
     const ligaturesWanted = (): boolean => {
@@ -213,6 +220,17 @@ export function createView(host: IViewHost, t: T, settings: () => Settings): IEd
         }
     };
 
+    /**
+     * 换行按钮的开关状态：开着挂主色，关着是普通灰。
+     *
+     * 这是个状态按钮而不是一次性的动作按钮，所以用 aria-pressed 把状态也交给读屏。
+     */
+    const syncWrap = (): void => {
+        const on = wrapOn();
+        wrapIcon.classList.toggle("editor-siyuan__icon--active", on);
+        wrapIcon.setAttribute("aria-pressed", String(on));
+    };
+
     const syncIcons = (): void => {
         closeIcon?.setAttribute("aria-label", t("close"));
         searchIcon.setAttribute("aria-label", t("find"));
@@ -223,10 +241,12 @@ export function createView(host: IViewHost, t: T, settings: () => Settings): IEd
         readonlyIcon.setAttribute("aria-label", readOnly ? t("switchToEdit") : t("switchToPreview"));
         readonlyIcon.innerHTML = `<svg><use xlink:href="#${readOnly ? "iconEdit" : "iconEye"}"></use></svg>`;
         moreIcon.setAttribute("aria-label", t("more"));
+        wrapIcon.setAttribute("aria-label", t("lineWrap"));
         // 空标签会被思源自己的 CSS 补上 "language"，加载完成前保持空
         languageLabel.textContent = editor ? language : "";
         languageLabel.setAttribute("aria-label", t("languageLabel"));
         syncHistory();
+        syncWrap();
     };
 
     const save = async (): Promise<boolean> => {
@@ -272,7 +292,8 @@ export function createView(host: IViewHost, t: T, settings: () => Settings): IEd
             }
         },
         setLineWrap: (wrap: boolean) => {
-            if (editor) {
+            // 在操作条上手动切过之后，这个页签就按自己的选择走，不再跟随设置
+            if (editor && wrapOverride === undefined) {
                 setEditorLineWrap(editor, wrap);
             }
         },
@@ -325,6 +346,15 @@ export function createView(host: IViewHost, t: T, settings: () => Settings): IEd
         if (editor && !readOnly && canRedo(editor)) {
             applyRedo(editor);
         }
+    });
+    // 换行只在本次打开内生效：不回写设置，下次打开仍按设置里的默认值
+    wrapIcon.addEventListener("click", () => {
+        if (!editor) {
+            return;
+        }
+        wrapOverride = !wrapOn();
+        setEditorLineWrap(editor, wrapOverride);
+        syncWrap();
     });
     // 右键＝只收起：面板占着正文上方一行，收起来要能一步到位
     searchIcon.addEventListener("contextmenu", (event) => {

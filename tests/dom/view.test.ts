@@ -95,6 +95,7 @@ const t = makeT({
     more: "更多",
     undo: "撤销",
     redo: "重做",
+    lineWrap: "换行",
     languageLabel: "语言",
     restoreTitle: "恢复未保存内容",
     restoreBody: "上次关闭时有未保存内容",
@@ -144,6 +145,7 @@ const searchIcon = (tab: IEditorTab): HTMLElement => tab.element.querySelector<H
 const moreIcon = (tab: IEditorTab): HTMLElement => tab.element.querySelector<HTMLElement>('[data-type="more"]')!;
 const undoIcon = (tab: IEditorTab): HTMLElement => tab.element.querySelector<HTMLElement>('[data-type="undo"]')!;
 const redoIcon = (tab: IEditorTab): HTMLElement => tab.element.querySelector<HTMLElement>('[data-type="redo"]')!;
+const wrapIcon = (tab: IEditorTab): HTMLElement => tab.element.querySelector<HTMLElement>('[data-type="wrap"]')!;
 const languageLabel = (tab: IEditorTab): HTMLElement =>
     tab.element.querySelector<HTMLElement>(".editor-siyuan__language")!;
 
@@ -701,5 +703,46 @@ describe("撤销与重做", () => {
         expect(redoIcon(tab).classList.contains("editor-siyuan__icon--disabled")).toBe(false);
         redoIcon(tab).click();
         expect(applyRedo).toHaveBeenCalledWith(editor);
+    });
+});
+
+describe("换行开关", () => {
+    it("初始状态跟随设置", async () => {
+        const tab = await openReady();
+        // 默认 lineWrap: auto，配合思源的 codeLineWrap: true
+        expect(wrapIcon(tab).classList.contains("editor-siyuan__icon--active")).toBe(true);
+        expect(wrapIcon(tab).getAttribute("aria-pressed")).toBe("true");
+        expect(wrapIcon(tab).getAttribute("aria-label")).toBe("换行");
+    });
+
+    it("思源关掉代码换行时初始为关闭", async () => {
+        installConfig({editor: {codeLineWrap: false}});
+        const tab = await openReady();
+        expect(wrapIcon(tab).classList.contains("editor-siyuan__icon--active")).toBe(false);
+        expect(wrapIcon(tab).getAttribute("aria-pressed")).toBe("false");
+    });
+
+    it("点一下切到关闭，只作用于本次打开", async () => {
+        const tab = await openReady();
+        wrapIcon(tab).click();
+        expect(setEditorLineWrap).toHaveBeenLastCalledWith(editor, false);
+        expect(wrapIcon(tab).classList.contains("editor-siyuan__icon--active")).toBe(false);
+        expect(wrapIcon(tab).getAttribute("aria-pressed")).toBe("false");
+        // 设置里的默认值不能被改写
+        expect(settings.lineWrap).toBe("auto");
+
+        // 手动切过之后，设置联动不再覆盖这个页签的选择
+        tab.setLineWrap(true);
+        expect(setEditorLineWrap).toHaveBeenCalledTimes(1);
+
+        wrapIcon(tab).click();
+        expect(setEditorLineWrap).toHaveBeenLastCalledWith(editor, true);
+        expect(wrapIcon(tab).classList.contains("editor-siyuan__icon--active")).toBe(true);
+    });
+
+    it("编辑器就绪前点换行按钮没有反应", () => {
+        const tab = openView();
+        wrapIcon(tab).click();
+        expect(setEditorLineWrap).not.toHaveBeenCalled();
     });
 });
