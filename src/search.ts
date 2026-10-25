@@ -119,14 +119,14 @@ ${iconButton("close", "iconClose", t("searchClose"))}
 <div class="editor-siyuan-search__row">
 <div class="b3-form__icon editor-siyuan-search__field">
 <svg class="b3-form__icon-icon"><use xlink:href="#iconReplace"></use></svg>
-<input class="b3-text-field b3-form__icon-input" data-type="replace" autocomplete="off" spellcheck="false" placeholder="${escapeHtml(t("replacePlaceholder"))}" aria-label="${escapeHtml(t("replacePlaceholder"))}">
+<input class="b3-text-field b3-form__icon-input" data-type="replaceText" autocomplete="off" spellcheck="false" placeholder="${escapeHtml(t("replacePlaceholder"))}" aria-label="${escapeHtml(t("replacePlaceholder"))}">
 </div>
 <button type="button" class="b3-button b3-button--small b3-button--outline" data-type="replace">${escapeHtml(t("replace"))}</button>
 <button type="button" class="b3-button b3-button--small b3-button--outline" data-type="replaceAll">${escapeHtml(t("replaceAll"))}</button>
 </div>`;
 
         this.searchField = this.dom.querySelector<HTMLInputElement>('[data-type="search"]')!;
-        this.replaceField = this.dom.querySelector<HTMLInputElement>('[data-type="replace"]')!;
+        this.replaceField = this.dom.querySelector<HTMLInputElement>('[data-type="replaceText"]')!;
         for (const flag of FLAGS) {
             this.flags.set(flag, this.dom.querySelector<HTMLElement>(`[data-type="${flag}"]`)!);
         }
@@ -186,6 +186,13 @@ ${iconButton("close", "iconClose", t("searchClose"))}
         }
     }
 
+    /**
+     * 给面板里的可点元素挂 click。
+     *
+     * 按 data-type 取元素，所以同一块面板里这个值必须唯一：替换输入框曾经也叫
+     * replace，querySelector 先取到它，按钮的 click 反而挂到了输入框上
+     * （点按钮没反应，点输入框却会替换一次），见 issue 里的修复记录。
+     */
     private bind(type: string, handler: () => void): void {
         this.dom.querySelector(`[data-type="${type}"]`)!.addEventListener("click", handler);
     }

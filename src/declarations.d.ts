@@ -20,9 +20,15 @@ interface IHljsResult {
     _emitter?: IHljsEmitter;
 }
 
+/** 引擎里已注册的一门语言；别名与规范名指向同一个对象，见 language.ts。 */
+interface IHljsLanguage {
+    name?: string;
+    aliases?: string[];
+}
+
 interface IHljs {
     highlight(code: string, options: {language: string; ignoreIllegals?: boolean}): IHljsResult;
-    getLanguage(name: string): unknown;
+    getLanguage(name: string): IHljsLanguage | undefined;
     listLanguages(): string[];
 }
 

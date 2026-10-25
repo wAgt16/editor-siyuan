@@ -11,10 +11,13 @@
  *
  * 保存图标思源没有（它全部自动保存，没有任何保存按钮的先例），
  * 按官方插件文档的做法从 Lucide 取 save，只改线宽等属性，路径数据保持原样。
+ * 换行图标同样取自 Lucide 的 wrap-text：思源没有换行图标，它的代码块用「更多」菜单里的
+ * 开关代替，而这里要的是操作条上的状态按钮。
  */
 
 export const ICON_TAB = "iconEditorText";
 export const ICON_SAVE = "iconEditorSave";
+export const ICON_WRAP = "iconEditorWrap";
 
 const STROKE = `fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"`;
 
@@ -27,4 +30,10 @@ export const ICONS = `<symbol id="${ICON_TAB}" viewBox="0 0 24 24" ${STROKE}>
 <path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/>
 <path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/>
 <path d="M7 3v4a1 1 0 0 0 1 1h7"/>
+</symbol>
+<symbol id="${ICON_WRAP}" viewBox="0 0 24 24" ${STROKE}>
+<path d="M3 6h18"/>
+<path d="M3 12h15a3 3 0 1 1 0 6h-4"/>
+<path d="M16 16l-2 2 2 2"/>
+<path d="M3 18h7"/>
 </symbol>`;

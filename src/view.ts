@@ -8,7 +8,7 @@
  * / --b3-font-size-editor / --b3-border-color / --b3-list-hover）。
  * 语法配色仍然复用用户选定的那份 hljs 主题样式表，见 theme.ts。
  *
- * 顶部一条操作条：左侧是可点的语言标签，右侧依次是查找、只读切换与保存。
+ * 顶部一条操作条：左侧是可点的语言标签、撤销 / 重做与换行开关，右侧依次是查找、只读切换与保存。
  * 图标按钮只留 aria-label 给读屏，不挂思源的 .ariaLabel：那一栏紧贴正文，
  * 悬浮提示弹出时会压住第一行代码，得不偿失。
  */
@@ -16,6 +16,10 @@ import {showMessage, type Plugin} from "siyuan";
 import type {EditorView} from "@codemirror/view";
 import {readAssetText, resolveAsset, resolveWorkspaceFile, writeAssetText, type IAssetRef, type IAssetText} from "./asset";
 import {
+    applyRedo,
+    applyUndo,
+    canRedo,
+    canUndo,
     createEditor,
     readCursor,
     restoreCursor,
@@ -36,6 +40,7 @@ import {
     type Settings,
 } from "./config";
 import {guessLanguage, PLAIN_TEXT} from "./language";
+import {isMobileFrontend} from "./frontend";
 import {debug} from "./debug";
 import {loadHljs} from "./hljs";
 import {closeSearch, toggleSearchPanel} from "./search";
@@ -43,7 +48,7 @@ import {openLanguageMenu} from "./language-menu";
 import {openMoreMenu} from "./more-menu";
 import {openConfirmDialog} from "./dialog";
 import {openEditorMenu} from "./context-menu";
-import {ICON_SAVE} from "./icons";
+import {ICON_SAVE, ICON_WRAP} from "./icons";
 import {config, escapeHtml} from "./util";
 import type {T} from "./i18n";
 
@@ -87,9 +92,9 @@ const megabytes = (bytes: number): string => `${(bytes / 1024 / 1024).toFixed(1)
 /**
  * 视图的宿主容器。
  *
- * 桌面端是思源的自定义页签（`Custom` 带着 element 与 data），移动端是
- * 全屏对话框里的一个 div——移动端的自定义页签 API 是空实现，见 mobile.ts。
- * 视图本身不关心自己挂在哪，只认这三个字段。
+ * 桌面端默认是思源的自定义页签（`Custom` 带着 element 与 data）；移动端与桌面端的
+ * 浮层形态都是对话框里的一个 div（移动端的自定义页签 API 是空实现，见 mobile.ts、
+ * popup.ts）。视图本身不关心自己挂在哪，只认这三个字段。
  */
 export interface IViewHost {
     /** 视图挂到这里。页签给的 Custom.element 只是 Element，对话框给的 div 是 HTMLElement。 */
@@ -97,11 +102,13 @@ export interface IViewHost {
     /** 页签或对话框带过来的数据：`{link}`，`.sy` 预览另有 `{sy: true}`。 */
     data?: Record<string, unknown>;
     /**
-     * 标题。移动端没有页签头，操作条上要显示文件名；页签里由页签头负责，不传。
+     * 标题。移动端全屏对话框与桌面端浮层都没有页签头，操作条上要显示文件名；
+     * 页签里由页签头负责，不传。
      */
     title?: string;
     /**
-     * 关闭动作。移动端传，页签里不传：页签有自己的关闭控件与未保存确认（见 close-guard.ts）。
+     * 关闭动作，同时决定要不要画那个关闭按钮。只有移动端的全屏对话框传：
+     * 它铺满一屏，没有空白可点。桌面端浮层没有关闭按钮，Esc 与点空白由 popup.ts 自己接。
      */
     onClose?: () => void;
 }
@@ -110,8 +117,8 @@ export function createView(host: IViewHost, t: T, settings: () => Settings): IEd
     const link = String(host.data?.link ?? "");
     // .sy 文档预览：只读到底，不提供编辑、保存与暂存
     const syDoc = host.data?.sy === true;
-    // 移动端的操作条要多两样东西：文件名与关闭按钮
-    const mobile = host.onClose !== undefined;
+    // 触屏（手机 App 与手机浏览器）：长按交给系统菜单，也不要自动聚焦把软键盘顶起来
+    const touch = isMobileFrontend();
 
     const root = document.createElement("div");
     root.className = "editor-siyuan";
@@ -119,10 +126,13 @@ export function createView(host: IViewHost, t: T, settings: () => Settings): IEd
     // 宿主的全局 click（boot/globalEvent/click.ts 的 globalClickHideMenu）会在任何 click
     // 之后关掉共享菜单，只有被点元素在菜单内、或带这个标记时才放过——否则点一下按钮，
     // 菜单刚弹出来就被这次点击自己关掉了。思源自己的 ⋮ 按钮也是这么标的（layout/dock/Inbox.ts）。
-    root.innerHTML = `<div class="editor-siyuan__action">${mobile ? `
-<span class="editor-siyuan__icon" data-type="close"><svg><use xlink:href="#iconClose"></use></svg></span>
+    root.innerHTML = `<div class="editor-siyuan__action">${host.onClose ? `
+<span class="editor-siyuan__icon" data-type="close"><svg><use xlink:href="#iconClose"></use></svg></span>` : ""}${host.title !== undefined ? `
 <span class="editor-siyuan__title"></span>` : ""}
 <span class="editor-siyuan__language" data-menu="true"></span>
+<span class="editor-siyuan__icon" data-type="undo"><svg><use xlink:href="#iconUndo"></use></svg></span>
+<span class="editor-siyuan__icon" data-type="redo"><svg><use xlink:href="#iconRedo"></use></svg></span>
+<span class="editor-siyuan__icon" data-type="wrap"><svg><use xlink:href="#${ICON_WRAP}"></use></svg></span>
 <span class="fn__flex-1"></span>
 <span class="editor-siyuan__icon" data-type="search"><svg><use xlink:href="#iconSearch"></use></svg></span>
 <span class="editor-siyuan__icon" data-type="readonly"><svg><use xlink:href="#iconEye"></use></svg></span>
@@ -135,6 +145,9 @@ export function createView(host: IViewHost, t: T, settings: () => Settings): IEd
 
     const mount = root.querySelector<HTMLElement>(".editor-siyuan__mount")!;
     const languageLabel = root.querySelector<HTMLElement>(".editor-siyuan__language")!;
+    const undoIcon = root.querySelector<HTMLElement>('[data-type="undo"]')!;
+    const redoIcon = root.querySelector<HTMLElement>('[data-type="redo"]')!;
+    const wrapIcon = root.querySelector<HTMLElement>('[data-type="wrap"]')!;
     const searchIcon = root.querySelector<HTMLElement>('[data-type="search"]')!;
     const saveIcon = root.querySelector<HTMLElement>('[data-type="save"]')!;
     const readonlyIcon = root.querySelector<HTMLElement>('[data-type="readonly"]')!;
@@ -156,6 +169,8 @@ export function createView(host: IViewHost, t: T, settings: () => Settings): IEd
     let dirty = false;
     // 初始模式取自设置；之后由操作条上的按钮在这个页签内切换，不回写设置
     let readOnly = syDoc || settings().openMode === "preview";
+    // 换行按钮只在本次打开内覆盖设置，关掉页签即恢复到设置里的默认值
+    let wrapOverride: boolean | undefined;
     let language = PLAIN_TEXT;
     let eol: "\n" | "\r\n" = "\n";
     let bom = false;
@@ -179,6 +194,9 @@ export function createView(host: IViewHost, t: T, settings: () => Settings): IEd
             (preference === "auto" && config().editor.codeLineWrap);
     };
 
+    /** 实际生效的换行状态：操作条上手动切过就按手动那次，否则按设置。 */
+    const wrapOn = (): boolean => wrapOverride ?? lineWrapWanted();
+
     /** 连字是否生效：auto 跟随思源的 editor.codeLigatures。 */
     const ligaturesWanted = (): boolean => {
         const preference = settings().ligatures;
@@ -186,17 +204,52 @@ export function createView(host: IViewHost, t: T, settings: () => Settings): IEd
             (preference === "auto" && config().editor.codeLigatures);
     };
 
+    /**
+     * 撤销 / 重做按钮的状态。
+     *
+     * 预览（只读）模式下整对隐藏——那时正文改不动，撤销栈也没有意义；
+     * 编辑模式下按 CodeMirror 的撤销栈深度置灰，与 ⌘Z / ⇧⌘Z 的可用性同源。
+     * 每次改动都要重算，所以这里只碰这两个按钮，不重写整排图标。
+     */
+    const syncHistory = (): void => {
+        const buttons: Array<[HTMLElement, boolean]> = [
+            [undoIcon, editor !== undefined && canUndo(editor)],
+            [redoIcon, editor !== undefined && canRedo(editor)],
+        ];
+        for (const [icon, available] of buttons) {
+            icon.classList.toggle("fn__none", readOnly);
+            icon.classList.toggle("editor-siyuan__icon--disabled", !available);
+            icon.setAttribute("aria-disabled", String(!available));
+        }
+    };
+
+    /**
+     * 换行按钮的开关状态：开着挂主色，关着是普通灰。
+     *
+     * 这是个状态按钮而不是一次性的动作按钮，所以用 aria-pressed 把状态也交给读屏。
+     */
+    const syncWrap = (): void => {
+        const on = wrapOn();
+        wrapIcon.classList.toggle("editor-siyuan__icon--active", on);
+        wrapIcon.setAttribute("aria-pressed", String(on));
+    };
+
     const syncIcons = (): void => {
         closeIcon?.setAttribute("aria-label", t("close"));
         searchIcon.setAttribute("aria-label", t("find"));
+        undoIcon.setAttribute("aria-label", t("undo"));
+        redoIcon.setAttribute("aria-label", t("redo"));
         saveIcon.setAttribute("aria-label", dirty ? t("saveDirty") : t("save"));
         saveIcon.classList.toggle("editor-siyuan__icon--dirty", dirty);
         readonlyIcon.setAttribute("aria-label", readOnly ? t("switchToEdit") : t("switchToPreview"));
         readonlyIcon.innerHTML = `<svg><use xlink:href="#${readOnly ? "iconEdit" : "iconEye"}"></use></svg>`;
         moreIcon.setAttribute("aria-label", t("more"));
+        wrapIcon.setAttribute("aria-label", t("lineWrap"));
         // 空标签会被思源自己的 CSS 补上 "language"，加载完成前保持空
         languageLabel.textContent = editor ? language : "";
         languageLabel.setAttribute("aria-label", t("languageLabel"));
+        syncHistory();
+        syncWrap();
     };
 
     const save = async (): Promise<boolean> => {
@@ -242,7 +295,8 @@ export function createView(host: IViewHost, t: T, settings: () => Settings): IEd
             }
         },
         setLineWrap: (wrap: boolean) => {
-            if (editor) {
+            // 在操作条上手动切过之后，这个页签就按自己的选择走，不再跟随设置
+            if (editor && wrapOverride === undefined) {
                 setEditorLineWrap(editor, wrap);
             }
         },
@@ -285,6 +339,25 @@ export function createView(host: IViewHost, t: T, settings: () => Settings): IEd
         if (editor) {
             toggleSearchPanel(editor);
         }
+    });
+    undoIcon.addEventListener("click", () => {
+        if (editor && !readOnly && canUndo(editor)) {
+            applyUndo(editor);
+        }
+    });
+    redoIcon.addEventListener("click", () => {
+        if (editor && !readOnly && canRedo(editor)) {
+            applyRedo(editor);
+        }
+    });
+    // 换行只在本次打开内生效：不回写设置，下次打开仍按设置里的默认值
+    wrapIcon.addEventListener("click", () => {
+        if (!editor) {
+            return;
+        }
+        wrapOverride = !wrapOn();
+        setEditorLineWrap(editor, wrapOverride);
+        syncWrap();
     });
     // 右键＝只收起：面板占着正文上方一行，收起来要能一步到位
     searchIcon.addEventListener("contextmenu", (event) => {
@@ -388,7 +461,7 @@ export function createView(host: IViewHost, t: T, settings: () => Settings): IEd
             t,
             // 移动端不拦 contextmenu：长按该交给系统那套文本菜单（剪切 / 复制 / 粘贴 / 全选），
             // 自制菜单在触屏上既和它重复，还会抢掉系统的选择手势。桌面端照旧用自己的右键菜单。
-            onContextMenu: mobile ? undefined : (event) => {
+            onContextMenu: touch ? undefined : (event) => {
                 if (editor) {
                     openEditorMenu({view: editor, t, readOnly, onSave: () => void save()}, event.clientX, event.clientY);
                 }
@@ -397,7 +470,10 @@ export function createView(host: IViewHost, t: T, settings: () => Settings): IEd
                 if (!dirty) {
                     dirty = true;
                     syncIcons();
+                    return;
                 }
+                // 撤销栈深度每次改动都可能变，但那几项图标不必因此重写
+                syncHistory();
             },
         });
         const cursor = settings().restoreCursor ? rememberedCursor(ref.link) : undefined;
@@ -406,8 +482,8 @@ export function createView(host: IViewHost, t: T, settings: () => Settings): IEd
         }
         syncIcons();
         // 移动端不自动聚焦：焦点一落到正文上就会弹起软键盘，盖掉半屏内容，
-        // 而用户这一下点击本身只是想看一眼文件。桌面端仍然聚焦，省一次点击。
-        if (!mobile) {
+        // 而用户这一下点击本身只是想看一眼文件。桌面端（页签与浮层都一样）仍然聚焦，省一次点击。
+        if (!touch) {
             editor.focus();
         }
         debug("editor ready", {

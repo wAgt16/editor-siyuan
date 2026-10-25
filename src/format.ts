@@ -66,6 +66,8 @@ function parserFor(language: string, extension: string): string | undefined {
         case "less":
             return "less";
         case "xml":
+        // html 是 xml 的别名（见 language.ts）：.html 文件现在报 html，解析器仍是同一个
+        case "html":
             if (extension === ".svelte") {
                 return undefined;
             }

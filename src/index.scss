@@ -50,6 +50,7 @@
 
   // 移动端的文件名。页签头在移动端不存在，文件名只能放这里：
   // 自然宽度 + 可收缩，空间不够时省略，而不是把右侧那排图标挤出去。
+  // 手机上没有悬停提示，省略掉的部分看不到，所以移动端把它改成横向滚动，见文件末尾。
   &__title {
     min-width: 0;
     overflow: hidden;
@@ -84,6 +85,21 @@
     // 有未保存改动时保存按钮一直显形并带主色：这是用户必须看得见的状态
     &--dirty {
       color: var(--b3-theme-primary);
+    }
+
+    // 状态按钮（换行）：开启时蓝，关闭时保持普通灰
+    &--active {
+      color: var(--b3-theme-primary);
+    }
+
+    // 撤销栈 / 重做栈空时置灰。仍然占位，操作条不会因为按钮变灰而左右跳动。
+    //
+    // 置灰用降低不透明度，不换颜色变量：思源自己的禁用态图标就是 .38（.block__icon[disabled]），
+    // 而 --b3-theme-on-surface-light 在深色主题里是 #bababa，比可点击态的 on-surface（#9aa0a6）
+    // 还亮，换过去会让禁用按钮看着比可用按钮更醒目，两个状态的观感正好对调。
+    &--disabled {
+      opacity: .38;
+      pointer-events: none;
     }
   }
 
@@ -133,7 +149,9 @@
 .editor-siyuan .cm-editor .cm-scroller {
   // 代码字体与字号跟随思源的代码字体设置；行高与思源编辑器一致
   font-family: var(--b3-font-family-editor-code, var(--b3-font-family-code));
-  font-size: var(--b3-font-size-editor);
+  // 字号取同样内容的代码块字号：思源代码块的 .hljs 是编辑器字号的 85%，
+  // 直接写 --b3-font-size-editor 会比旁边的代码块大一圈。思源没有单独的代码字号变量。
+  font-size: calc(var(--b3-font-size-editor) * .85);
   font-weight: var(--b3-font-weight-editor-code, 400);
   line-height: 1.625;
   color: inherit;
@@ -329,19 +347,67 @@
   }
 }
 
-// 触屏上 24px 的图标太小，按思源移动端工具条的尺寸放大，顺带加大间距
+// ---- 桌面端：浮层 ----
+// 桌面端把形态选成「浮层」，或当前就在思源弹出的独立窗口里时，同一个视图挂在居中浮层里
+// （见 popup.ts）。外壳一律用思源对话框原生的那套：标题栏、底色（--b3-theme-surface）、
+// 边框、圆角、阴影、拖动与调大小都由宿主的 .b3-dialog 提供，这里不覆盖任何一项，
+// 只把正文的滚动理顺：编辑器自己滚，对话框这一层不要多出一根滚动条。
+.b3-dialog__container.editor-siyuan-popup {
+  .b3-dialog__body {
+    min-height: 0;
+    overflow: hidden;
+  }
+}
+
+.editor-siyuan-popup__mount {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  // 对话框容器是圆角的，但它包着标题栏与正文整块，本身不裁切（resize 抓手伸出容器外，
+  // 裁了就调不了大小）。于是铺满下半截的编辑器会用自己的底色把容器下面两个圆角盖成直角，
+  // 所以在这一层补上同样的圆角并裁掉溢出。做法与思源给 .block__popover 里的列表补底角一致。
+  border-radius: 0 0 var(--b3-border-radius-b) var(--b3-border-radius-b);
+  overflow: hidden;
+
+  // 视图本身是按页签写的（height: 100%），这里让它吃掉容器的剩余高度
+  .editor-siyuan {
+    flex: 1;
+    min-height: 0;
+  }
+}
+
+// 移动端的图标按钮与思源面包屑上的按钮同规格：24px 的触控区、16px 的图标、更紧的间距。
+// 之前按移动端工具栏放大到 32px 与 6px 间距，一排按钮把文件名挤得只剩省略号。
 .editor-siyuan-dialog .editor-siyuan__action {
-  gap: 6px;
-  padding: 4px 6px 4px 8px;
+  gap: 2px;
+  padding: 2px 4px 2px 6px;
 }
 
 .editor-siyuan-dialog .editor-siyuan__icon {
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
 
   svg {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
+  }
+}
+
+// 手机上文件名可以左右拖动看全。
+//
+// 窄屏 + 长文件名时，省略号截断掉的那截在触屏上没有任何办法看到（没有悬停提示，
+// 也没有桌面端那种可拖宽的侧栏），所以这里改成横向滚动：宽度仍然按可用空间收缩，
+// 手指左右滑就能看到全名。滚动条藏起来，与思源自己的面包屑插件条一个做法
+// （`.protyle-breadcrumb__plugin` 也是 overflow-x: auto + 隐藏滚动条）。
+.editor-siyuan-dialog .editor-siyuan__title {
+  overflow-x: auto;
+  overflow-y: hidden;
+  text-overflow: clip;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
   }
 }
 

@@ -29,6 +29,9 @@ export type TFollow = "auto" | "on" | "off";
 /** 页签打开时的模式；preview 即操作条上的只读态。 */
 export type TOpenMode = "edit" | "preview";
 
+/** 桌面端的编辑器形态：思源的自定义页签，或独占一块居中浮层。 */
+export type TDesktopForm = "tab" | "dialog";
+
 export interface Settings {
     /** 接管手势；none 表示点击一律交回思源，只能从右键菜单打开。 */
     takeover: TTakeover;
@@ -47,6 +50,11 @@ export interface Settings {
     ligatures: TFollow;
     /** 打开页签时先进入编辑还是只读预览。 */
     openMode: TOpenMode;
+    /**
+     * 桌面端新打开的文件用页签还是浮层。
+     * 思源弹出的独立窗口（desktop-window）没有页签栏，那里一律用浮层，与本项无关。
+     */
+    desktopForm: TDesktopForm;
     /** 重新打开时恢复上次的滚动位置与光标。 */
     restoreCursor: boolean;
     /** 在文件树里右键笔记文档时，是否提供「预览 .sy 文件」。 */
@@ -86,6 +94,7 @@ export const DEFAULT_SETTINGS: Settings = {
     lineWrap: "auto",
     ligatures: "auto",
     openMode: "edit",
+    desktopForm: "tab",
     restoreCursor: true,
     previewSy: false,
     codeBlockMenu: true,
@@ -96,6 +105,7 @@ const TAKEOVERS: TTakeover[] = ["click", "ctrlClick", "altClick", "shiftClick", 
 const LINE_NUMBERS: TLineNumbers[] = ["auto", "show", "hide"];
 const FOLLOWS: TFollow[] = ["auto", "on", "off"];
 const OPEN_MODES: TOpenMode[] = ["edit", "preview"];
+const DESKTOP_FORMS: TDesktopForm[] = ["tab", "dialog"];
 
 const pick = <T extends string>(value: unknown, allowed: T[], fallback: T): T =>
     allowed.find((item) => item === value) ?? fallback;
@@ -114,6 +124,7 @@ export function normalizeSettings(raw: unknown): Settings {
         lineWrap: pick(source.lineWrap, FOLLOWS, DEFAULT_SETTINGS.lineWrap),
         ligatures: pick(source.ligatures, FOLLOWS, DEFAULT_SETTINGS.ligatures),
         openMode: pick(source.openMode, OPEN_MODES, DEFAULT_SETTINGS.openMode),
+        desktopForm: pick(source.desktopForm, DESKTOP_FORMS, DEFAULT_SETTINGS.desktopForm),
         restoreCursor: source.restoreCursor !== false,
         previewSy: source.previewSy === true,
         codeBlockMenu: source.codeBlockMenu !== false,
