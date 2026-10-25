@@ -5,6 +5,7 @@ import {installConfig, makeSettings} from "../support/env";
 import {makeT} from "../../src/i18n";
 import {ICON_TAB} from "../../src/icons";
 import {openMobileEditor} from "../../src/mobile";
+import {openPopupEditor} from "../../src/popup";
 import {
     openEditor,
     openSyPreview,
@@ -14,6 +15,7 @@ import {
 } from "../../src/open";
 
 vi.mock("../../src/mobile", () => ({openMobileEditor: vi.fn()}));
+vi.mock("../../src/popup", () => ({openPopupEditor: vi.fn()}));
 
 const t = makeT({
     openWithEditor: "使用 Editor 打开",
@@ -88,6 +90,25 @@ describe("openEditor", () => {
         expect(openTab).not.toHaveBeenCalled();
         expect(openMobileEditor).toHaveBeenCalledWith(deps, {link: "assets/notes/a.txt"}, "notes/a.txt");
     });
+
+    it("形态选成浮层时改走浮层", () => {
+        settings = makeSettings({desktopForm: "dialog"});
+        openEditor(deps, "assets/notes/a.txt");
+        expect(openTab).not.toHaveBeenCalled();
+        expect(openPopupEditor).toHaveBeenCalledWith(deps, {link: "assets/notes/a.txt"}, "notes/a.txt");
+    });
+
+    it("思源弹出的独立窗口没有页签栏，一律用浮层", () => {
+        __setFrontend("desktop-window");
+        openEditor(deps, "assets/a.txt");
+        expect(openTab).not.toHaveBeenCalled();
+        expect(openPopupEditor).toHaveBeenCalledWith(deps, {link: "assets/a.txt"}, "a.txt");
+    });
+
+    it("页签形态下不走浮层", () => {
+        openEditor(deps, "assets/a.txt");
+        expect(openPopupEditor).not.toHaveBeenCalled();
+    });
 });
 
 describe("openSyPreview", () => {
@@ -120,6 +141,17 @@ describe("openSyPreview", () => {
         __setFrontend("mobile");
         openSyPreview(deps, "box-id", "/notes/doc.sy");
         expect(openMobileEditor).toHaveBeenCalledWith(
+            deps,
+            {link: "/data/box-id/notes/doc.sy", sy: true},
+            "doc",
+        );
+    });
+
+    it("浮层形态下 .sy 预览也用浮层", () => {
+        settings = makeSettings({desktopForm: "dialog"});
+        openSyPreview(deps, "box-id", "/notes/doc.sy");
+        expect(openTab).not.toHaveBeenCalled();
+        expect(openPopupEditor).toHaveBeenCalledWith(
             deps,
             {link: "/data/box-id/notes/doc.sy", sy: true},
             "doc",

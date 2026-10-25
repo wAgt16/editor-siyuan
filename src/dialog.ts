@@ -50,6 +50,17 @@ function blockEscape(event: KeyboardEvent): void {
     }
 }
 
+/** 当前开着的确认框数量。 */
+let openedCount = 0;
+
+/**
+ * 有确认框开着。
+ *
+ * 浮层（popup.ts）要在捕获阶段抢 Esc，但确认框自己弹在最上面时不能抢：
+ * 那一按该由确认框处理（等同取消），抢过来会把用户正在回答的问题连带关掉。
+ */
+export const confirmDialogOpen = (): boolean => openedCount > 0;
+
 export function openConfirmDialog(options: {
     title: string;
     text: string;
@@ -82,6 +93,7 @@ export function openConfirmDialog(options: {
         // disableClose 只挡得住点击空白处（以及移动端的关闭图标），Esc 得靠上面的监听
         disableClose: !dismissable,
         destroyCallback: () => {
+            openedCount--;
             if (!dismissable) {
                 window.removeEventListener("keydown", blockEscape, true);
             }
@@ -91,6 +103,7 @@ export function openConfirmDialog(options: {
             }
         },
     });
+    openedCount++;
     if (!dismissable) {
         window.addEventListener("keydown", blockEscape, true);
     }

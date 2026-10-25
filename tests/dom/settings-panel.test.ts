@@ -38,6 +38,10 @@ const labels = {
     openModeTip: "打开模式提示",
     openModeEdit: "编辑",
     openModePreview: "预览",
+    desktopForm: "桌面端形态",
+    desktopFormTip: "形态提示",
+    desktopFormTab: "页签",
+    desktopFormDialog: "浮层",
     lineNumbers: "行号",
     lineNumbersTip: "行号提示",
     lineNumbersShow: "显示",
@@ -109,6 +113,7 @@ describe("openSettingsPanel", () => {
             labels.confirmOnClose,
             labels.stashUnsaved,
             labels.openMode,
+            labels.desktopForm,
             labels.lineNumbers,
             labels.lineWrap,
             labels.ligatures,
@@ -123,6 +128,23 @@ describe("openSettingsPanel", () => {
         const {setting} = open();
         expect(setting.items.map((item) => item.title)).not.toContain(labels.takeoverGesture);
         expect(setting.items).toHaveLength(14);
+    });
+
+    it("移动端与独立窗口不渲染形态选项", () => {
+        __setFrontend("mobile");
+        expect(open().setting.items.map((item) => item.title)).not.toContain(labels.desktopForm);
+        __setFrontend("desktop-window");
+        expect(open().setting.items.map((item) => item.title)).not.toContain(labels.desktopForm);
+    });
+
+    it("改形态会写进保存的设置，但仍不改任何东西直到点保存", () => {
+        const {control, onSave} = open({desktopForm: "tab"});
+        const select = control(labels.desktopForm) as HTMLSelectElement;
+        expect(select.value).toBe("tab");
+        choose(select, "dialog");
+        expect(onSave).not.toHaveBeenCalled();
+        settingConfirm(onSave);
+        expect(onSave).toHaveBeenCalledWith(expect.objectContaining({desktopForm: "dialog"}));
     });
 
     it("扩展名项占整行", () => {

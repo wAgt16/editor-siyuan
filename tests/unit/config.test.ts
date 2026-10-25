@@ -52,6 +52,7 @@ describe("normalizeSettings", () => {
             lineWrap: "on",
             ligatures: "off",
             openMode: "preview",
+            desktopForm: "dialog",
             restoreCursor: false,
             previewSy: true,
             codeBlockMenu: false,
@@ -67,6 +68,7 @@ describe("normalizeSettings", () => {
             lineWrap: "on",
             ligatures: "off",
             openMode: "preview",
+            desktopForm: "dialog",
             restoreCursor: false,
             previewSy: true,
             codeBlockMenu: false,
@@ -81,12 +83,14 @@ describe("normalizeSettings", () => {
             lineWrap: "yes",
             ligatures: 1,
             openMode: "read",
+            desktopForm: "window",
         });
         expect(settings.takeover).toBe(DEFAULT_SETTINGS.takeover);
         expect(settings.lineNumbers).toBe(DEFAULT_SETTINGS.lineNumbers);
         expect(settings.lineWrap).toBe(DEFAULT_SETTINGS.lineWrap);
         expect(settings.ligatures).toBe(DEFAULT_SETTINGS.ligatures);
         expect(settings.openMode).toBe(DEFAULT_SETTINGS.openMode);
+        expect(settings.desktopForm).toBe(DEFAULT_SETTINGS.desktopForm);
     });
 
     it("extensions 只接受字符串", () => {

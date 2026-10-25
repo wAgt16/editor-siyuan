@@ -344,6 +344,32 @@
   }
 }
 
+// ---- 桌面端：浮层 ----
+// 桌面端把形态选成「浮层」，或当前就在思源弹出的独立窗口里时，同一个视图挂在居中浮层里
+// （见 popup.ts）。容器由思源给：宽度高度是内联样式，这里只把底色、圆角与正文的滚动理清。
+.b3-dialog__container.editor-siyuan-popup {
+  background-color: var(--b3-theme-background);
+
+  // 正文自己会滚动；对话框这一层不再滚，否则滚动的会是空壳
+  .b3-dialog__body {
+    min-height: 0;
+    overflow: hidden;
+  }
+}
+
+.editor-siyuan-popup__mount {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+
+  // 视图本身是按页签写的（height: 100%），这里让它吃掉容器的剩余高度
+  .editor-siyuan {
+    flex: 1;
+    min-height: 0;
+  }
+}
+
 // 移动端的图标按钮与思源面包屑上的按钮同规格：24px 的触控区、16px 的图标、更紧的间距。
 // 之前按移动端工具栏放大到 32px 与 6px 间距，一排按钮把文件名挤得只剩省略号。
 .editor-siyuan-dialog .editor-siyuan__action {

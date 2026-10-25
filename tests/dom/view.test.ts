@@ -1,7 +1,7 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import type {Plugin as SiyuanPlugin} from "siyuan";
 import {EditorState} from "@codemirror/state";
-import {Plugin, showMessage} from "../support/siyuan";
+import {Plugin, showMessage, __setFrontend} from "../support/siyuan";
 import {installConfig, makeSettings} from "../support/env";
 import {
     initStore,
@@ -196,6 +196,19 @@ describe("初始渲染", () => {
         expect(tab.element.querySelector(".editor-siyuan__title")?.textContent).toBe("a.txt");
     });
 
+    it("桌面端浮层只显示文件名，不出关闭按钮", () => {
+        const tab = openView(host({link: REF.link}, {title: "a.txt"}));
+        expect(tab.element.querySelector('[data-type="close"]')).toBeNull();
+        expect(tab.element.querySelector(".editor-siyuan__title")?.textContent).toBe("a.txt");
+    });
+
+    it("浮动窗口里同样显示文件名", () => {
+        __setFrontend("desktop-window");
+        const tab = openView(host({link: REF.link}, {title: "a.txt"}));
+        expect(tab.element.querySelector('[data-type="close"]')).toBeNull();
+        expect(tab.element.querySelector(".editor-siyuan__title")?.textContent).toBe("a.txt");
+    });
+
     it("操作条按钮都带 aria-label", () => {
         const tab = openView();
         expect(saveIcon(tab).getAttribute("aria-label")).toBe("保存");
@@ -318,8 +331,21 @@ describe("加载文件", () => {
     });
 
     it("移动端不拦截右键，交给系统菜单", async () => {
+        __setFrontend("mobile");
         await openReady(host({link: REF.link}, {title: "a.txt", onClose: vi.fn()}));
         expect(lastOptions.onContextMenu).toBeUndefined();
+    });
+
+    it("桌面端浮层仍然用自己的右键菜单，并聚焦正文", async () => {
+        await openReady(host({link: REF.link}, {title: "a.txt"}));
+        expect(lastOptions.onContextMenu).toBeTypeOf("function");
+        expect(editor.focus).toHaveBeenCalled();
+    });
+
+    it("移动端不自动聚焦，免得一打开就弹软键盘", async () => {
+        __setFrontend("mobile");
+        await openReady(host({link: REF.link}, {title: "a.txt", onClose: vi.fn()}));
+        expect(editor.focus).not.toHaveBeenCalled();
     });
 
     it("销毁发生在加载完成前时不再建立编辑器", async () => {

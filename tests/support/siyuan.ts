@@ -172,16 +172,12 @@ export class Dialog {
     constructor(options: IDialogOptions) {
         this.options = options;
         this.element.className = "b3-dialog";
-        if (options.title) {
-            const header = document.createElement("div");
-            header.className = "b3-dialog__header";
-            header.textContent = options.title;
-            this.element.append(header);
-        }
-        const container = document.createElement("div");
-        container.className = "b3-dialog__container";
-        container.innerHTML = options.content ?? "";
-        this.element.append(container);
+        // 与宿主的 DOM 一致：遮罩、容器、关闭图标都在同一层里，插件靠选择器取它们
+        this.element.innerHTML = `<div class="b3-dialog__scrim"></div>
+<div class="b3-dialog__container">
+  <svg class="b3-dialog__close"></svg>
+  <div class="b3-dialog__body">${options.content ?? ""}</div>
+</div>`;
         document.body.append(this.element);
         Dialog.instances.push(this);
     }

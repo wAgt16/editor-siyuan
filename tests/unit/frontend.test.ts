@@ -1,6 +1,6 @@
 import {describe, expect, it} from "vitest";
 import {__setFrontend} from "../support/siyuan";
-import {frontend, isBrowserFrontend, isMobileFrontend} from "../../src/frontend";
+import {frontend, isBrowserFrontend, isMobileFrontend, isSeparateWindow} from "../../src/frontend";
 
 describe("frontend", () => {
     it("把宿主的前端标识原样返回", () => {
@@ -38,5 +38,16 @@ describe("isMobileFrontend", () => {
             __setFrontend(value);
             expect(isMobileFrontend(), value).toBe(false);
         }
+    });
+});
+
+describe("isSeparateWindow", () => {
+    it("只有 desktop-window 为真", () => {
+        for (const value of ["desktop", "mobile", "browser-desktop", "browser-mobile"]) {
+            __setFrontend(value);
+            expect(isSeparateWindow(), value).toBe(false);
+        }
+        __setFrontend("desktop-window");
+        expect(isSeparateWindow()).toBe(true);
     });
 });

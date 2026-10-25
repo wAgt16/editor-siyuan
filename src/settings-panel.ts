@@ -9,9 +9,17 @@
  * 面板里改的是一份草稿，点「保存」才落盘——这也正是 Setting 的 confirmCallback 语义。
  */
 import {Setting} from "siyuan";
-import {DEFAULT_EXTENSIONS, type Settings, type TFollow, type TLineNumbers, type TOpenMode, type TTakeover} from "./config";
+import {
+    DEFAULT_EXTENSIONS,
+    type Settings,
+    type TDesktopForm,
+    type TFollow,
+    type TLineNumbers,
+    type TOpenMode,
+    type TTakeover,
+} from "./config";
 import {rememberedCount} from "./config";
-import {isMobileFrontend} from "./frontend";
+import {isMobileFrontend, isSeparateWindow} from "./frontend";
 import type {T} from "./i18n";
 
 export interface ISettingsPanelOptions {
@@ -177,6 +185,21 @@ export function openSettingsPanel(options: ISettingsPanelOptions): void {
             draft.openMode = value as TOpenMode;
         }),
     });
+
+    // 形态只在桌面主窗口里可选：移动端没有页签 API，独立窗口里也没有页签栏，
+    // 那两处只能是对话框/浮层，给一个改不动的选项只会让人困惑
+    if (!isMobileFrontend() && !isSeparateWindow()) {
+        setting.addItem({
+            title: t("desktopForm"),
+            description: t("desktopFormTip"),
+            actionElement: selectControl(draft.desktopForm, [
+                {value: "tab", label: t("desktopFormTab")},
+                {value: "dialog", label: t("desktopFormDialog")},
+            ], (value) => {
+                draft.desktopForm = value as TDesktopForm;
+            }),
+        });
+    }
 
     setting.addItem({
         title: t("lineNumbers"),

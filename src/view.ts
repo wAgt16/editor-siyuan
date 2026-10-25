@@ -40,6 +40,7 @@ import {
     type Settings,
 } from "./config";
 import {guessLanguage, PLAIN_TEXT} from "./language";
+import {isMobileFrontend} from "./frontend";
 import {debug} from "./debug";
 import {loadHljs} from "./hljs";
 import {closeSearch, toggleSearchPanel} from "./search";
@@ -91,9 +92,9 @@ const megabytes = (bytes: number): string => `${(bytes / 1024 / 1024).toFixed(1)
 /**
  * 视图的宿主容器。
  *
- * 桌面端是思源的自定义页签（`Custom` 带着 element 与 data），移动端是
- * 全屏对话框里的一个 div——移动端的自定义页签 API 是空实现，见 mobile.ts。
- * 视图本身不关心自己挂在哪，只认这三个字段。
+ * 桌面端默认是思源的自定义页签（`Custom` 带着 element 与 data）；移动端与桌面端的
+ * 浮层形态都是对话框里的一个 div（移动端的自定义页签 API 是空实现，见 mobile.ts、
+ * popup.ts）。视图本身不关心自己挂在哪，只认这三个字段。
  */
 export interface IViewHost {
     /** 视图挂到这里。页签给的 Custom.element 只是 Element，对话框给的 div 是 HTMLElement。 */
@@ -101,11 +102,13 @@ export interface IViewHost {
     /** 页签或对话框带过来的数据：`{link}`，`.sy` 预览另有 `{sy: true}`。 */
     data?: Record<string, unknown>;
     /**
-     * 标题。移动端没有页签头，操作条上要显示文件名；页签里由页签头负责，不传。
+     * 标题。移动端全屏对话框与桌面端浮层都没有页签头，操作条上要显示文件名；
+     * 页签里由页签头负责，不传。
      */
     title?: string;
     /**
-     * 关闭动作。移动端传，页签里不传：页签有自己的关闭控件与未保存确认（见 close-guard.ts）。
+     * 关闭动作，同时决定要不要画那个关闭按钮。只有移动端的全屏对话框传：
+     * 它铺满一屏，没有空白可点。桌面端浮层没有关闭按钮，Esc 与点空白由 popup.ts 自己接。
      */
     onClose?: () => void;
 }
@@ -114,8 +117,8 @@ export function createView(host: IViewHost, t: T, settings: () => Settings): IEd
     const link = String(host.data?.link ?? "");
     // .sy 文档预览：只读到底，不提供编辑、保存与暂存
     const syDoc = host.data?.sy === true;
-    // 移动端的操作条要多两样东西：文件名与关闭按钮
-    const mobile = host.onClose !== undefined;
+    // 触屏（手机 App 与手机浏览器）：长按交给系统菜单，也不要自动聚焦把软键盘顶起来
+    const touch = isMobileFrontend();
 
     const root = document.createElement("div");
     root.className = "editor-siyuan";
@@ -123,8 +126,8 @@ export function createView(host: IViewHost, t: T, settings: () => Settings): IEd
     // 宿主的全局 click（boot/globalEvent/click.ts 的 globalClickHideMenu）会在任何 click
     // 之后关掉共享菜单，只有被点元素在菜单内、或带这个标记时才放过——否则点一下按钮，
     // 菜单刚弹出来就被这次点击自己关掉了。思源自己的 ⋮ 按钮也是这么标的（layout/dock/Inbox.ts）。
-    root.innerHTML = `<div class="editor-siyuan__action">${mobile ? `
-<span class="editor-siyuan__icon" data-type="close"><svg><use xlink:href="#iconClose"></use></svg></span>
+    root.innerHTML = `<div class="editor-siyuan__action">${host.onClose ? `
+<span class="editor-siyuan__icon" data-type="close"><svg><use xlink:href="#iconClose"></use></svg></span>` : ""}${host.title !== undefined ? `
 <span class="editor-siyuan__title"></span>` : ""}
 <span class="editor-siyuan__language" data-menu="true"></span>
 <span class="editor-siyuan__icon" data-type="undo"><svg><use xlink:href="#iconUndo"></use></svg></span>
@@ -458,7 +461,7 @@ export function createView(host: IViewHost, t: T, settings: () => Settings): IEd
             t,
             // 移动端不拦 contextmenu：长按该交给系统那套文本菜单（剪切 / 复制 / 粘贴 / 全选），
             // 自制菜单在触屏上既和它重复，还会抢掉系统的选择手势。桌面端照旧用自己的右键菜单。
-            onContextMenu: mobile ? undefined : (event) => {
+            onContextMenu: touch ? undefined : (event) => {
                 if (editor) {
                     openEditorMenu({view: editor, t, readOnly, onSave: () => void save()}, event.clientX, event.clientY);
                 }
@@ -479,8 +482,8 @@ export function createView(host: IViewHost, t: T, settings: () => Settings): IEd
         }
         syncIcons();
         // 移动端不自动聚焦：焦点一落到正文上就会弹起软键盘，盖掉半屏内容，
-        // 而用户这一下点击本身只是想看一眼文件。桌面端仍然聚焦，省一次点击。
-        if (!mobile) {
+        // 而用户这一下点击本身只是想看一眼文件。桌面端（页签与浮层都一样）仍然聚焦，省一次点击。
+        if (!touch) {
             editor.focus();
         }
         debug("editor ready", {

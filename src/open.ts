@@ -15,7 +15,8 @@
  * 3. 笔记文档的右键菜单：文件树上的 `open-menu-doctree` 同样由宿主包成
  *    「插件」子菜单，用来只读预览该文档的 .sy 源文件（见 registerSyPreview）。
  *
- * 移动端没有自定义页签，前两条入口改由 mobile.ts 的全屏对话框承载。
+ * 移动端没有自定义页签，前两条入口改由 mobile.ts 的全屏对话框承载；桌面端把形态选成
+ * 浮层（或当前就在思源弹出的独立窗口里）时，改由 popup.ts 的居中浮层承载。
  */
 import {
     openTab,
@@ -28,8 +29,9 @@ import {
 } from "siyuan";
 import {allowedExtensions, hasAllowedExtension, type Settings, type TTakeover} from "./config";
 import {debug} from "./debug";
-import {isMobileFrontend} from "./frontend";
+import {isMobileFrontend, isSeparateWindow} from "./frontend";
 import {openMobileEditor} from "./mobile";
+import {openPopupEditor} from "./popup";
 import {baseName, config, stripQuery} from "./util";
 import {ICON_TAB} from "./icons";
 import type {T} from "./i18n";
@@ -94,10 +96,25 @@ function focusExistingTab(plugin: Plugin, link: string): boolean {
     return false;
 }
 
+/**
+ * 桌面端该用浮层还是页签。
+ *
+ * 设置里选了浮层就用浮层；另外思源弹出的独立窗口（desktop-window）没有页签栏，
+ * 插件页签在那里落不下来，所以那里一律用浮层，与设置无关。
+ */
+function usesPopup(settings: Settings): boolean {
+    return settings.desktopForm === "dialog" || isSeparateWindow();
+}
+
 export function openEditor(deps: IOpenDeps, link: string): void {
     if (isMobileFrontend()) {
         // 标题只放文件名：资源链接恒为 assets/<文件名>，带上目录不会增加区分度
         openMobileEditor(deps, {link}, link.slice("assets/".length));
+        return;
+    }
+    if (usesPopup(deps.settings())) {
+        debug("open popup", link);
+        openPopupEditor(deps, {link}, link.slice("assets/".length));
         return;
     }
     if (focusExistingTab(deps.plugin, link)) {
@@ -125,6 +142,11 @@ export function openSyPreview(deps: IOpenDeps, notebookId: string, path: string)
     if (isMobileFrontend()) {
         // 标题取文档名（.sy 文件名就是思源里的文档名），去掉扩展名
         openMobileEditor(deps, {link: apiPath, sy: true}, baseName(path).replace(/\.sy$/i, ""));
+        return;
+    }
+    if (usesPopup(deps.settings())) {
+        debug("preview .sy in popup", apiPath);
+        openPopupEditor(deps, {link: apiPath, sy: true}, baseName(path).replace(/\.sy$/i, ""));
         return;
     }
     if (focusExistingTab(deps.plugin, apiPath)) {

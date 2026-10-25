@@ -24,3 +24,11 @@ export const isBrowserFrontend = (): boolean => frontend().startsWith("browser")
  * 被编译掉了），编辑器只能挂进对话框。
  */
 export const isMobileFrontend = (): boolean => frontend().endsWith("mobile");
+
+/**
+ * 思源弹出的独立窗口（`desktop-window`）。
+ *
+ * 它是桌面端，但只有那一篇文档的容器、没有主窗口的页签栏，
+ * 插件注册的自定义页签在那里落不下来，所以编辑器改挂浮层，见 popup.ts。
+ */
+export const isSeparateWindow = (): boolean => frontend() === "desktop-window";

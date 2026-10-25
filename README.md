@@ -7,7 +7,7 @@ Open and edit the text files a note links to, inside SiYuan. The editor uses you
 
 ## What it does
 
-SiYuan renders a link to a file in `assets/` as an ordinary hyperlink. Clicking it hands the file to the system default application — a text editor, or nothing at all. This plugin opens it in SiYuan instead, in a custom tab with syntax highlighting, line numbers, search and undo on desktop, and in a full-screen dialog on mobile.
+SiYuan renders a link to a file in `assets/` as an ordinary hyperlink. Clicking it hands the file to the system default application — a text editor, or nothing at all. This plugin opens it in SiYuan instead: on desktop in a custom tab (or in a floating window, if you pick that in the settings) with syntax highlighting, line numbers, search, undo and redo; on mobile in a full-screen dialog.
 
 Four ways in:
 
@@ -21,7 +21,7 @@ Only files in the workspace's `assets/` folder are handled. Links to absolute pa
 ## Requirements
 
 - SiYuan 3.8.3 or later.
-- Desktop, Docker deployments opened in a desktop browser, and mobile (the phone app and a phone browser). SiYuan's custom tab API is a no-op on mobile, so mobile has no tabs; the same editor is mounted in a full-screen dialog instead. `plugin.json` declares `all` for both backends and frontends.
+- Desktop, Docker deployments opened in a desktop browser, and mobile (the phone app and a phone browser). SiYuan's custom tab API is a no-op on mobile, so mobile has no tabs; the same editor is mounted in a full-screen dialog instead. A window popped out of SiYuan has no tab strip either, so the editor opens in a floating window there. `plugin.json` declares `all` for both backends and frontends.
 - The administrator role. Locating and writing an asset uses `/api/asset/resolveAssetPath`, `/api/asset/statAsset` and `/api/file/putFile`, which SiYuan restricts to administrators. A single-user local workspace is always an administrator.
 
 ## Install
@@ -70,6 +70,7 @@ TypeScript, JSX, SCSS, LESS, HTML, YAML and Markdown have no dependable in-brows
 | Confirm before closing | on | Ask before closing an editor with unsaved changes |
 | Stash unsaved changes | on | Keep unsaved content when an editor closes and offer to restore it next time |
 | Mode to open in | Edit | Whether a newly opened file starts in editing or read-only preview; editors already open are unaffected |
+| Desktop form | Tab | Whether a newly opened file becomes a tab or a floating window. The floating window has no close button: press `Esc` or click outside it, and unsaved changes are confirmed first. A window popped out of SiYuan always uses the floating window. Hidden on mobile |
 | Line numbers | Always show | Whether the gutter shows line numbers |
 | Line wrap | Follow SiYuan | Whether content wider than the editor wraps automatically |
 | Ligatures | Follow SiYuan | Whether the code font's ligatures apply, such as `=>` and `!=` |
@@ -85,7 +86,12 @@ TypeScript, JSX, SCSS, LESS, HTML, YAML and Markdown have no dependable in-brows
 | `Ctrl+F` / `Cmd+F` | Open the in-file search panel, or close it when it is open |
 | `Ctrl+W` / `Cmd+W` | SiYuan's own "close tab"; asks for confirmation when there are unsaved changes |
 
-The search icon in the tab's action bar does the same: it toggles the panel. Right-clicking it closes the panel without opening it. Mobile has no hardware keyboard; save with the button in the action bar.
+The action bar does the rest. From left to right: the language label (click it for the syntax list), undo, redo, the line wrap toggle, then search, the preview/edit switch, save and **More**.
+
+- Undo and redo follow the editor's own history, so they are greyed out exactly when `Ctrl+Z` / `Ctrl+Shift+Z` would do nothing. Both are hidden in preview mode.
+- The line wrap toggle is a state button: blue while wrapping is on. It overrides the **Line wrap** setting for that one editor only — the stored default is never changed, so the next open starts from the setting again.
+
+The search icon toggles the panel; right-clicking it closes the panel without opening it. Mobile has no hardware keyboard; save with the button in the action bar.
 
 ## Known limitations
 
@@ -104,6 +110,8 @@ These are consequences of the plugin API, not oversights.
 - **The context menu's Paste entry may be greyed out in a browser.** Browsers forbid scripted pasting, leaving only the async clipboard, which needs HTTPS or localhost; without it the entry is greyed out. Pressing `Ctrl+V` in the document itself is unaffected.
 - **Mobile has no tabs.** The same editor is mounted in a full-screen dialog, and only the × at the left end of the action bar closes it — that button owns the unsaved-changes confirmation. The mobile back key and system gestures never reach the plugin, and are covered by the stash.
 - **Mobile always takes over plain taps.** Mobile has no modifier keys, so the gesture row is hidden and an Alt or Ctrl click saved on desktop is treated as a plain click there.
+- **The floating window has no close button and cannot be dragged.** SiYuan's drag handle is the dialog header, and the header is hidden because the file name already sits on the action bar. Close it with `Esc` or by clicking outside it; both paths ask before throwing unsaved changes away.
+- **A window popped out of SiYuan always uses the floating window**, whatever the **Desktop form** setting says: those windows have no tab strip for the plugin tab to land in.
 
 ## Development
 
