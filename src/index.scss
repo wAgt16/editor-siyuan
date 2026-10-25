@@ -50,6 +50,7 @@
 
   // 移动端的文件名。页签头在移动端不存在，文件名只能放这里：
   // 自然宽度 + 可收缩，空间不够时省略，而不是把右侧那排图标挤出去。
+  // 手机上没有悬停提示，省略掉的部分看不到，所以移动端把它改成横向滚动，见文件末尾。
   &__title {
     min-width: 0;
     overflow: hidden;
@@ -356,6 +357,23 @@
   svg {
     width: 18px;
     height: 18px;
+  }
+}
+
+// 手机上文件名可以左右拖动看全。
+//
+// 窄屏 + 长文件名时，省略号截断掉的那截在触屏上没有任何办法看到（没有悬停提示，
+// 也没有桌面端那种可拖宽的侧栏），所以这里改成横向滚动：宽度仍然按可用空间收缩，
+// 手指左右滑就能看到全名。滚动条藏起来，与思源自己的面包屑插件条一个做法
+// （`.protyle-breadcrumb__plugin` 也是 overflow-x: auto + 隐藏滚动条）。
+.editor-siyuan-dialog .editor-siyuan__title {
+  overflow-x: auto;
+  overflow-y: hidden;
+  text-overflow: clip;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
   }
 }
 
