@@ -110,7 +110,7 @@ These are consequences of the plugin API, not oversights.
 - **The context menu's Paste entry may be greyed out in a browser.** Browsers forbid scripted pasting, leaving only the async clipboard, which needs HTTPS or localhost; without it the entry is greyed out. Pressing `Ctrl+V` in the document itself is unaffected.
 - **Mobile has no tabs.** The same editor is mounted in a full-screen dialog, and only the × at the left end of the action bar closes it — that button owns the unsaved-changes confirmation. The mobile back key and system gestures never reach the plugin, and are covered by the stash.
 - **Mobile always takes over plain taps.** Mobile has no modifier keys, so the gesture row is hidden and an Alt or Ctrl click saved on desktop is treated as a plain click there.
-- **The floating window has no close button and cannot be dragged.** SiYuan's drag handle is the dialog header, and the header is hidden because the file name already sits on the action bar. Close it with `Esc` or by clicking outside it; both paths ask before throwing unsaved changes away.
+- **The floating window has no close button.** Its shell is SiYuan's own dialog: the title bar carries the file name, and the surface background, shadow, drag handle and resize grips are all native. Only the close icon is gone, so close it with `Esc` or by clicking outside it; both paths ask before throwing unsaved changes away.
 - **A window popped out of SiYuan always uses the floating window**, whatever the **Desktop form** setting says: those windows have no tab strip for the plugin tab to land in.
 
 ## Development

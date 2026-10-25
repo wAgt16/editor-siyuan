@@ -65,29 +65,32 @@ describe("openPopupEditor", () => {
         openPopupEditor(deps, {link: "assets/a.txt"}, "a.txt");
         const dialog = Dialog.instances[0];
         expect(dialog.options).toMatchObject({
+            title: "a.txt",
             width: "80%",
             height: "80%",
             disableClose: true,
             hideCloseIcon: true,
         });
-        expect(dialog.options.title).toBeUndefined();
         expect(dialog.options.content).toContain("editor-siyuan-popup__mount");
     });
 
-    it("给容器加插件类名与 aria-label", () => {
+    it("外观用思源自己的标题栏与容器，只额外挂一个插件类名", () => {
         openPopupEditor(deps, {link: "assets/a.txt"}, "a.txt");
-        const container = Dialog.instances[0].element.querySelector<HTMLElement>(".b3-dialog__container")!;
+        const dialog = Dialog.instances[0];
+        const header = dialog.element.querySelector<HTMLElement>(".b3-dialog__header")!;
+        expect(header.classList.contains("fn__none")).toBe(false);
+        expect(header.textContent).toBe("a.txt");
+        const container = dialog.element.querySelector<HTMLElement>(".b3-dialog__container")!;
         expect(container.classList.contains("editor-siyuan-popup")).toBe(true);
-        expect(container.getAttribute("aria-label")).toBe("a.txt");
     });
 
-    it("视图挂在浮层里，带标题但不给关闭按钮", async () => {
+    it("视图挂在浮层里，标题交给对话框，操作条不重复", async () => {
         const {createView} = await import("../../src/view");
         openPopupEditor(deps, {link: "assets/a.txt", sy: true}, "a.txt");
         const dialog = Dialog.instances[0];
         const mount = dialog.element.querySelector(".editor-siyuan-popup__mount");
         expect(createView).toHaveBeenCalledWith(
-            {element: mount, data: {link: "assets/a.txt", sy: true}, title: "a.txt"},
+            {element: mount, data: {link: "assets/a.txt", sy: true}},
             t,
             deps.settings,
         );

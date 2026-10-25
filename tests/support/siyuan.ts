@@ -172,10 +172,12 @@ export class Dialog {
     constructor(options: IDialogOptions) {
         this.options = options;
         this.element.className = "b3-dialog";
-        // 与宿主的 DOM 一致：遮罩、容器、关闭图标都在同一层里，插件靠选择器取它们
+        // 与宿主的 DOM 一致：遮罩、容器、关闭图标、标题栏（无标题时 fn__none）与正文都在这一层，
+        // 插件靠选择器取它们，也靠标题栏证明「原生弹窗外观」还在。
         this.element.innerHTML = `<div class="b3-dialog__scrim"></div>
 <div class="b3-dialog__container">
   <svg class="b3-dialog__close"></svg>
+  <div class="b3-dialog__header${options.title ? "" : " fn__none"}">${options.title ?? ""}</div>
   <div class="b3-dialog__body">${options.content ?? ""}</div>
 </div>`;
         document.body.append(this.element);

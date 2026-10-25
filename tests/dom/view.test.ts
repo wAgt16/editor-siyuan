@@ -196,7 +196,7 @@ describe("初始渲染", () => {
         expect(tab.element.querySelector(".editor-siyuan__title")?.textContent).toBe("a.txt");
     });
 
-    it("桌面端浮层只显示文件名，不出关闭按钮", () => {
+    it("只给标题时只显示文件名，不出关闭按钮", () => {
         const tab = openView(host({link: REF.link}, {title: "a.txt"}));
         expect(tab.element.querySelector('[data-type="close"]')).toBeNull();
         expect(tab.element.querySelector(".editor-siyuan__title")?.textContent).toBe("a.txt");

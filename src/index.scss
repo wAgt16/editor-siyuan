@@ -346,11 +346,10 @@
 
 // ---- 桌面端：浮层 ----
 // 桌面端把形态选成「浮层」，或当前就在思源弹出的独立窗口里时，同一个视图挂在居中浮层里
-// （见 popup.ts）。容器由思源给：宽度高度是内联样式，这里只把底色、圆角与正文的滚动理清。
+// （见 popup.ts）。外壳一律用思源对话框原生的那套：标题栏、底色（--b3-theme-surface）、
+// 边框、圆角、阴影、拖动与调大小都由宿主的 .b3-dialog 提供，这里不覆盖任何一项，
+// 只把正文的滚动理顺：编辑器自己滚，对话框这一层不要多出一根滚动条。
 .b3-dialog__container.editor-siyuan-popup {
-  background-color: var(--b3-theme-background);
-
-  // 正文自己会滚动；对话框这一层不再滚，否则滚动的会是空壳
   .b3-dialog__body {
     min-height: 0;
     overflow: hidden;
@@ -362,6 +361,11 @@
   flex: 1;
   flex-direction: column;
   min-height: 0;
+  // 对话框容器是圆角的，但它包着标题栏与正文整块，本身不裁切（resize 抓手伸出容器外，
+  // 裁了就调不了大小）。于是铺满下半截的编辑器会用自己的底色把容器下面两个圆角盖成直角，
+  // 所以在这一层补上同样的圆角并裁掉溢出。做法与思源给 .block__popover 里的列表补底角一致。
+  border-radius: 0 0 var(--b3-border-radius-b) var(--b3-border-radius-b);
+  overflow: hidden;
 
   // 视图本身是按页签写的（height: 100%），这里让它吃掉容器的剩余高度
   .editor-siyuan {
