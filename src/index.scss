@@ -93,9 +93,12 @@
     }
 
     // 撤销栈 / 重做栈空时置灰。仍然占位，操作条不会因为按钮变灰而左右跳动。
+    //
+    // 置灰用降低不透明度，不换颜色变量：思源自己的禁用态图标就是 .38（.block__icon[disabled]），
+    // 而 --b3-theme-on-surface-light 在深色主题里是 #bababa，比可点击态的 on-surface（#9aa0a6）
+    // 还亮，换过去会让禁用按钮看着比可用按钮更醒目，两个状态的观感正好对调。
     &--disabled {
-      color: var(--b3-theme-on-surface-light);
-      cursor: default;
+      opacity: .38;
       pointer-events: none;
     }
   }
