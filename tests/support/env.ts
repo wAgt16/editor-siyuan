@@ -76,6 +76,11 @@ export interface IHljsCall {
 
 export interface IHljsMockOptions {
     languages?: string[];
+    /**
+     * 语言别名，与 hljs 一致：别名与规范名解析到同一个对象。
+     * 只有需要断言「语言列表里出现别名」的测试才传。
+     */
+    aliases?: Record<string, string[]>;
     highlight?: (code: string, options: {language: string; ignoreIllegals?: boolean}) => any;
 }
 
@@ -100,7 +105,13 @@ export const DEFAULT_LANGUAGES = [
  */
 export function installHljs(options: IHljsMockOptions = {}): {calls: IHljsCall[]} {
     const languages = options.languages ?? DEFAULT_LANGUAGES;
+    const aliases = options.aliases ?? {};
     const calls: IHljsCall[] = [];
+    // 每门语言只有一个对象：hljs 就是这样让别名与规范名指向同一个定义，
+    // 调用方（比如 language.ts 列语言时）靠它判断别名有没有撞到别的语言。
+    const definitions = new Map(languages.map((name) => [name, {name, aliases: aliases[name]}]));
+    const resolve = (name: string) => definitions.get(name) ?? Array.from(definitions.values())
+        .find((definition) => definition.aliases?.includes(name));
     (window as any).hljs = {
         highlight(code: string, opts: {language: string; ignoreIllegals?: boolean}) {
             calls.push({code, language: opts.language, ignoreIllegals: opts.ignoreIllegals});
@@ -110,7 +121,7 @@ export function installHljs(options: IHljsMockOptions = {}): {calls: IHljsCall[]
             return {value: code, _emitter: {rootNode: {children: [code]}}};
         },
         getLanguage(name: string) {
-            return languages.includes(name) ? {name} : undefined;
+            return resolve(name);
         },
         listLanguages() {
             return [...languages];

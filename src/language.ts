@@ -34,8 +34,10 @@ const BY_EXTENSION: Record<string, string> = {
     ".env": "ini",
     ".properties": "properties",
     ".xml": "xml",
-    ".html": "xml",
-    ".htm": "xml",
+    // html 是 xml 在 hljs 里的别名：两者用同一份语法，但代码块的语言标签写的是 html，
+    // 用户也是按 html 找语言的（见 issue #15），所以这里直接给别名，别退回 xml
+    ".html": "html",
+    ".htm": "html",
     ".css": "css",
     ".scss": "scss",
     ".sass": "scss",
@@ -105,15 +107,33 @@ export function guessLanguage(path: string): string {
     return BY_EXTENSION[extensionOf(path)] ?? PLAIN_TEXT;
 }
 
-/** 当前引擎实际支持的语言，按字母序。引擎未加载时只有纯文本。 */
+/**
+ * 当前引擎实际支持的语言，按字母序。引擎未加载时只有纯文本。
+ *
+ * 除了规范名，也把别名一并列出：hljs 的 listLanguages() 只返回规范名，
+ * 而 html、js、ts、py、sh 这些别名同样是合法的语言标识（getLanguage 认、highlight 也认），
+ * 用户正是按别名找语言的。带点的别名（html.hbs 之类）是模板方言而不是可选语言，跳过。
+ */
 export function availableLanguages(): string[] {
     const hljs = window.hljs;
     if (!hljs) {
         return [PLAIN_TEXT];
     }
-    const names = hljs.listLanguages().filter((name) => name !== PLAIN_TEXT);
-    names.sort((a, b) => a.localeCompare(b));
-    return [PLAIN_TEXT, ...names];
+    const names = new Set<string>();
+    for (const name of hljs.listLanguages()) {
+        names.add(name);
+        const language = hljs.getLanguage(name);
+        for (const alias of language?.aliases ?? []) {
+            // 撞名时 hljs 只认最后注册的那一个，所以别名必须确实指回本语言才能列
+            if (!alias.includes(".") && hljs.getLanguage(alias) === language) {
+                names.add(alias);
+            }
+        }
+    }
+    names.delete(PLAIN_TEXT);
+    const list = Array.from(names);
+    list.sort((a, b) => a.localeCompare(b));
+    return [PLAIN_TEXT, ...list];
 }
 
 /** 把任意候选语言收拢成引擎真的认识的语言标识。 */

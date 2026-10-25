@@ -14,6 +14,7 @@ describe("canFormat", () => {
             ["scss", "assets/a.scss"],
             ["less", "assets/a.less"],
             ["xml", "assets/a.html"],
+            ["html", "assets/a.html"],
             ["xml", "assets/a.vue"],
             ["yaml", "assets/a.yaml"],
             ["markdown", "assets/a.md"],
@@ -101,6 +102,9 @@ describe("formatText", () => {
 
     it("格式化 HTML 与 Vue", async () => {
         expect(await formatText("xml", "assets/a.html", "<div><span>x</span></div>"))
+            .toBe("<div><span>x</span></div>\n");
+        // .html 现在报的是 xml 的别名 html，解析器不能因此断掉
+        expect(await formatText("html", "assets/a.html", "<div><span>x</span></div>"))
             .toBe("<div><span>x</span></div>\n");
         expect(await formatText("xml", "assets/a.vue", "<template><div/></template>"))
             .toBe("<template><div /></template>\n");

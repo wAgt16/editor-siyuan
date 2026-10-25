@@ -22,7 +22,8 @@ describe("guessLanguage", () => {
             ["assets/a.yml", "yaml"],
             ["assets/a.toml", "ini"],
             ["assets/a.properties", "properties"],
-            ["assets/a.html", "xml"],
+            ["assets/a.html", "html"],
+            ["assets/a.htm", "html"],
             ["assets/a.vue", "xml"],
             ["assets/a.css", "css"],
             ["assets/a.scss", "scss"],
@@ -98,6 +99,20 @@ describe("availableLanguages", () => {
         expect(languages).toEqual(["xml", "bash"]);
         expect(calls).toHaveLength(0);
     });
+
+    it("把别名也列出来，带点的别名除外", () => {
+        installHljs({
+            languages: ["xml", "javascript", "bash"],
+            aliases: {
+                xml: ["html", "svg", "html.hbs"],
+                javascript: ["js", "mjs"],
+                bash: ["zsh"],
+            },
+        });
+        expect(availableLanguages()).toEqual([
+            PLAIN_TEXT, "bash", "html", "javascript", "js", "mjs", "svg", "xml", "zsh",
+        ]);
+    });
 });
 
 describe("normalizeLanguage", () => {
@@ -115,5 +130,10 @@ describe("normalizeLanguage", () => {
     it("引擎不认识的语言退回纯文本", () => {
         installHljs({languages: ["javascript"]});
         expect(normalizeLanguage("brainfuck")).toBe(PLAIN_TEXT);
+    });
+
+    it("引擎认识的别名原样返回", () => {
+        installHljs({languages: ["xml"], aliases: {xml: ["html"]}});
+        expect(normalizeLanguage("html")).toBe("html");
     });
 });
