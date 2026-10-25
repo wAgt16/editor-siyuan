@@ -344,19 +344,20 @@
   }
 }
 
-// 触屏上 24px 的图标太小，按思源移动端工具条的尺寸放大，顺带加大间距
+// 移动端的图标按钮与思源面包屑上的按钮同规格：24px 的触控区、16px 的图标、更紧的间距。
+// 之前按移动端工具栏放大到 32px 与 6px 间距，一排按钮把文件名挤得只剩省略号。
 .editor-siyuan-dialog .editor-siyuan__action {
-  gap: 6px;
-  padding: 4px 6px 4px 8px;
+  gap: 2px;
+  padding: 2px 4px 2px 6px;
 }
 
 .editor-siyuan-dialog .editor-siyuan__icon {
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
 
   svg {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
   }
 }
 
